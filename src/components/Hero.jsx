@@ -25,8 +25,7 @@ export default function Hero() {
                 Tu Asistente Financiero en WhatsApp
               </h1>
               <p style={{ marginTop: '1.5rem', fontSize: '1.125rem', color: '#A0AEC0' }}> {/* mt-6 text-lg text-simon-light */}
-                SimonIA es tu chatbot financiero personal que te ayuda a gestionar tus finanzas, 
-                responder preguntas sobre inversiones y mantener un control tu dinero.
+                Usar SimonIA es tan sencillo como enviarle un mensaje a un amigo.
               </p>
             </motion.div>
           </div>

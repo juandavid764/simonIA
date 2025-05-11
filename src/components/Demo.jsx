@@ -23,7 +23,7 @@ export default function Demo() {
             transition={{ duration: 0.5 }}
           >
             <h2 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#D69E2E' }}> {/* text-base font-semibold leading-7 text-simon-gold */}
-              Demo Interactiva
+              Demo
             </h2>
             <p style={{ marginTop: '0.5rem', fontSize: '1.875rem', fontWeight: 'bold', color: '#1A202C' }}> {/* mt-2 text-3xl font-bold tracking-tight text-simon-dark */}
               Prueba SimonIA Ahora
@@ -36,7 +36,15 @@ export default function Demo() {
 
         <div className="mx-auto mt-16 max-w-2xl">
           <div className="relative rounded-2xl bg-simon-light p-6 shadow-lg ring-1 ring-simon-green/20">
-            
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}> {/* Increased height to 100vh for full viewport height */}
+              <ReactPlayer
+                url="https://youtube.com/shorts/GThwl8XdtoE?si=TCVNHoBiWVhesfrj"
+                controls
+                width="100%" // Responsive width for all devices
+                height="100%" // Adjusted height for better visibility on both mobile and desktop
+                style={{ maxWidth: '360px', maxHeight: '640px', borderRadius: '1rem', overflow: 'hidden' }}
+              />
+            </div>
           </div>
         </div>
       </div>
