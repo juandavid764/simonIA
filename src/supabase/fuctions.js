@@ -2,14 +2,13 @@ import { supabase } from "../supabase/client.js";
 
 
 // insert User into 'users' table
-export async function insertUser({ telefono, nombre, email }) {
+export async function insertUser({ telefono, nombre }) {
   const { data, error } = await supabase
     .from("users")
     .insert([
       {
         telefono: telefono,
         nombre: nombre,
-        email: email,
       },
     ])
     .select();

@@ -25,7 +25,7 @@ export default function Demo() {
             <h2 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#D69E2E' }}> {/* text-base font-semibold leading-7 text-simon-gold */}
               Demo
             </h2>
-            <p style={{ marginTop: '0.5rem', fontSize: '1.875rem', fontWeight: 'bold', color: '#1A202C' }}> {/* mt-2 text-3xl font-bold tracking-tight text-simon-dark */}
+            <p style={{ marginTop: '0.5rem', fontSize: '1.875rem', fontWeight: 'bold', color: '#fff' }}> {/* mt-2 text-3xl font-bold tracking-tight text-white */}
               Prueba SimonIA Ahora
             </p>
             <p style={{ marginTop: '1.5rem', fontSize: '1.125rem', color: '#38A169' }}> {/* mt-6 text-lg leading-8 text-simon-green */}

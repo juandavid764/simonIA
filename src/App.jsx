@@ -12,10 +12,10 @@ function App() {
       <Navbar />
       <main >
         <Hero />
+        <Register />
         <WhatIs />
         <Examples />
         <Demo />
-        <Register />
       </main>
       <footer className="bg-gray-800">
         <div className="container-custom py-12">
