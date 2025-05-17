@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { insertUser } from "../supabase/fuctions.js";
-import logo from "../assets/logo_simonIA.jpg";
+import logo from "../assets/logo_estred.png";
 
 export default function Register() {
   const [formData, setFormData] = useState({

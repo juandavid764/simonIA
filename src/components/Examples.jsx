@@ -11,8 +11,7 @@ const examples = [
   },
   {
     user: "¿Me puedes dar el reporte de mayo?",
-    bot: "📊 Reporte de Mayo 2025\nGenerado el 12/05/2025\n\n¡Hola, Juan David! 👋 Aquí tienes tu resumen de mayo:\n\n🟢 Ingresos Totales $5,418,550\n🔴 Gastos Totales: $5,403,459.97\n\n📌 Balance Final\n\n $15,090.03 (🟢 Ingresos Totales - 🔴 Gastos Totale)\n\n\n🧾 Gastos por Categoría\n1. 🍔 Comida: $5,098,880 (10%)\n\n2. 💡 Servicios: $80,140 (20%)\n\n3. 🛍 Compras: $205,199.97 (30%)\n\n4. 🏠 Vivienda: $950 (50%)\n\n5. 🚌 Transporte: $90 (10%)\n\n6. 🎭 Ocio: $200 (20%)\n\n\n💡 Recomendaciones\n1. Verifica los gastos en comida y servicios.\n2. Considera ajustar el presupuesto en estas áreas.\n3. ¿Necesitas ayuda? Dime qué ajustar y te guío.\n\n¡Estoy aquí para ayudarte! 😊",
-  },
+bot: "📊 Reporte de Mayo 2025\nGenerado el 12/05/2025\n\n¡Hola, Juan David! 👋 Aquí tienes tu resumen de mayo:\n\n🟢 Ingresos Totales: $4,200,000\n🔴 Gastos Totales: $3,850,000\n\n📌 Balance Final\n$350,000 (🟢 Ingresos Totales - 🔴 Gastos Totales)\n\n🧾 Gastos por Categoría\n🍔 Comida: $1,200,000 (31%)\n💡 Servicios: $400,000 (10%)\n🛍 Compras: $650,000 (17%)\n🏠 Vivienda: $1,300,000 (34%)\n🚌 Transporte: $200,000 (5%)\n🎭 Ocio: $100,000 (3%)\n\n💡 Recomendaciones\nVerifica los gastos en comida y vivienda.\nEvalúa si puedes reducir compras no esenciales.\n¿Quieres que te ayude a crear un presupuesto optimizado?\n\n¡Estoy aquí para ayudarte! 😊",  },
 ];
 
 export default function Examples() {
