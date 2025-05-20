@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 
-export default function Hero() {
+export const Hero = () => {
   return (
     <div id="home" className="relative isolate pt-14 bg-[#1A202C]" > {/* bg-simon-dark */}
       <div

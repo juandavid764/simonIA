@@ -20,9 +20,9 @@ const features = [
 ];
 
 // Adjusted colors to match the palette used in other components
-export default function WhatIs() {
+export const WhatIs = () => {
   return (
-    <div id="what-is" className="py-16 md:py-24" style={{ backgroundColor: '#1A202C' }}>
+    <div id="what-is" className="" style={{ backgroundColor: '#1A202C' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:text-center">
           <motion.div

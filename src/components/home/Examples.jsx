@@ -14,7 +14,7 @@ const examples = [
 bot: "📊 Reporte de Mayo 2025\nGenerado el 12/05/2025\n\n¡Hola, Juan David! 👋 Aquí tienes tu resumen de mayo:\n\n🟢 Ingresos Totales: $4,200,000\n🔴 Gastos Totales: $3,850,000\n\n📌 Balance Final\n$350,000 (🟢 Ingresos Totales - 🔴 Gastos Totales)\n\n🧾 Gastos por Categoría\n🍔 Comida: $1,200,000 (31%)\n💡 Servicios: $400,000 (10%)\n🛍 Compras: $650,000 (17%)\n🏠 Vivienda: $1,300,000 (34%)\n🚌 Transporte: $200,000 (5%)\n🎭 Ocio: $100,000 (3%)\n\n💡 Recomendaciones\nVerifica los gastos en comida y vivienda.\nEvalúa si puedes reducir compras no esenciales.\n¿Quieres que te ayude a crear un presupuesto optimizado?\n\n¡Estoy aquí para ayudarte! 😊",  },
 ];
 
-export default function Examples() {
+export const Examples = () => {
   return (
     <div id="examples" style={{ minHeight: '100vh', background: '#1A202C', padding: '2rem 0' }}> {/* Fondo oscuro */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
