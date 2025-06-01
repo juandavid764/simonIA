@@ -40,15 +40,23 @@ export const Estadisticas = () => {
     try {
       // Current month stats
       const currentMonthData = await getCurrentMonthStats(user.id);
-      setCurrentStats(currentMonthData);      // Category stats for current month
+      setCurrentStats(currentMonthData);      // Category stats for current month - usar tiempo local para Colombia
       const now = new Date();
-      const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-      const endOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      // Formatear fechas como YYYY-MM-DD en tiempo local
+      const formatLocalDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
 
       const categoryData = await getCategoryStats(
         user.id,
-        startOfMonth.toISOString().split("T")[0],
-        endOfMonth.toISOString().split("T")[0]
+        formatLocalDate(startOfMonth),
+        formatLocalDate(endOfMonth)
       );
       setCategoryStats(categoryData);
 

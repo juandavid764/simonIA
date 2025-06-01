@@ -76,8 +76,8 @@ export async function getMonthlyReports(user_id, year = null) {
 // Get current month statistics
 export async function getCurrentMonthStats(user_id) {
   const now = new Date();
-  const currentYear = now.getUTCFullYear();
-  const currentMonth = now.getUTCMonth() + 1;
+  const currentYear = now.getFullYear(); // Usar tiempo local en lugar de UTC
+  const currentMonth = now.getMonth() + 1; // Usar tiempo local en lugar de UTC
 
   const { data, error } = await supabase
     .from("monthly_reports")
@@ -180,7 +180,7 @@ export async function getTransactionsComparison(user_id, days = 30) {
 
 // Get year overview
 export async function getYearOverview(user_id, year = null) {
-  const targetYear = year || new Date().getUTCFullYear();
+  const targetYear = year || new Date().getFullYear(); // Usar tiempo local en lugar de UTC
 
   const { data, error } = await supabase
     .from("monthly_reports")
@@ -196,15 +196,23 @@ export async function getYearOverview(user_id, year = null) {
 // Get weekly analysis for current month
 export async function getWeeklyAnalysis(user_id) {
   const now = new Date();
-  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const endOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); // Usar tiempo local
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Usar tiempo local
+
+  // Formatear fechas como YYYY-MM-DD en tiempo local
+  const formatLocalDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const { data, error } = await supabase
     .from("transactions")
     .select("fecha, tipo, monto")
     .eq("user_id", user_id)
-    .gte("fecha", startOfMonth.toISOString().split("T")[0])
-    .lte("fecha", endOfMonth.toISOString().split("T")[0])
+    .gte("fecha", formatLocalDate(startOfMonth))
+    .lte("fecha", formatLocalDate(endOfMonth))
     .order("fecha", { ascending: true });
 
   if (error) throw error;
@@ -212,8 +220,8 @@ export async function getWeeklyAnalysis(user_id) {
   // Group by weeks
   const weeks = {};
   data.forEach((transaction) => {
-    const date = new Date(transaction.fecha);
-    const weekNumber = Math.ceil(date.getUTCDate() / 7);
+    const date = new Date(transaction.fecha + 'T00:00:00'); // Forzar interpretación local
+    const weekNumber = Math.ceil(date.getDate() / 7); // Usar getDate() en lugar de getUTCDate()
     const weekKey = `Semana ${weekNumber}`;
 
     if (!weeks[weekKey]) {

@@ -38,7 +38,6 @@ export const Transacciones = () => {
 
   // Suscribirse a las transacciones en tiempo real
   useSubscribeToTransacciones(reloadData, user?.id);
-
   // Efecto para obtener transacciones al cargar el componente
   useEffect(() => {
     if (!user?.id) return;
@@ -52,21 +51,32 @@ export const Transacciones = () => {
         console.error("Error fetching transactions:", error);
         setLoading(false);
       });
-  }, [user?.id, reload]);  // calcular ingresos y gastos cada vez que cambian las transacciones
-  useEffect(() => {
-    const ingresosTemp = transactions.filter((tx) => {
-    return tx.tipo === "ingreso" &&
-           tx.fecha &&
-           new Date(tx.fecha).getUTCMonth() + 1 === currentMonth &&
-           new Date(tx.fecha).getUTCFullYear() === currentYear;
-  });
+  }, [user?.id, reload]);
 
-  const gastosTemp = transactions.filter((tx) => {
-    return tx.tipo === "gasto" &&
-           tx.fecha &&
-           new Date(tx.fecha).getUTCMonth() + 1 === currentMonth &&
-           new Date(tx.fecha).getUTCFullYear() === currentYear;
-  });
+  // calcular ingresos y gastos cada vez que cambian las transacciones
+  useEffect(() => {
+    // Usar fecha local en lugar de UTC para Colombia (UTC-5)
+    const now = new Date();
+    const localCurrentMonth = now.getMonth() + 1; // getMonth() devuelve 0-11, por eso +1
+    const localCurrentYear = now.getFullYear();
+
+    const ingresosTemp = transactions.filter((tx) => {
+      if (!tx.tipo || tx.tipo !== "ingreso" || !tx.fecha) return false;
+      
+      // Forzar interpretación como fecha local agregando 'T00:00:00'
+      const txDate = new Date(tx.fecha + 'T00:00:00');
+      return txDate.getMonth() + 1 === localCurrentMonth &&
+             txDate.getFullYear() === localCurrentYear;
+    });
+
+    const gastosTemp = transactions.filter((tx) => {
+      if (!tx.tipo || tx.tipo !== "gasto" || !tx.fecha) return false;
+      
+      // Forzar interpretación como fecha local agregando 'T00:00:00'
+      const txDate = new Date(tx.fecha + 'T00:00:00');
+      return txDate.getMonth() + 1 === localCurrentMonth &&
+             txDate.getFullYear() === localCurrentYear;
+    });
 
     setIngresos(ingresosTemp);
     setGastos(gastosTemp);
