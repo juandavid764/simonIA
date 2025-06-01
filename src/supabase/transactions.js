@@ -91,6 +91,20 @@ export async function getCurrentMonthStats(user_id) {
   return data;
 }
 
+// Get statistics for a specific month and year
+export async function getSpecificMonthStats(user_id, year, month) {
+  const { data, error } = await supabase
+    .from("monthly_reports")
+    .select("*")
+    .eq("user_id", user_id)
+    .eq("año", year)
+    .eq("mes", month)
+    .single();
+
+  if (error && error.code !== "PGRST116") throw error; // PGRST116 = no rows returned
+  return data;
+}
+
 // Get category statistics for a specific period
 export async function getCategoryStats(user_id, startDate, endDate) {
   const { data, error } = await supabase
@@ -115,6 +129,27 @@ export async function getCategoryStats(user_id, startDate, endDate) {
     category,
     total: parseFloat(total.toFixed(2)),
   }));
+}
+
+// Get category statistics for a specific month and year
+export async function getCategoryStatsForMonth(user_id, year, month) {
+  // Calculate start and end dates for the specified month
+  const startOfMonth = new Date(year, month - 1, 1);
+  const endOfMonth = new Date(year, month, 0);
+
+  // Formatear fechas como YYYY-MM-DD en tiempo local
+  const formatLocalDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  return await getCategoryStats(
+    user_id,
+    formatLocalDate(startOfMonth),
+    formatLocalDate(endOfMonth)
+  );
 }
 
 // Get recent transactions comparison
@@ -198,6 +233,55 @@ export async function getWeeklyAnalysis(user_id) {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); // Usar tiempo local
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Usar tiempo local
+
+  // Formatear fechas como YYYY-MM-DD en tiempo local
+  const formatLocalDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("fecha, tipo, monto")
+    .eq("user_id", user_id)
+    .gte("fecha", formatLocalDate(startOfMonth))
+    .lte("fecha", formatLocalDate(endOfMonth))
+    .order("fecha", { ascending: true });
+
+  if (error) throw error;
+
+  // Group by weeks
+  const weeks = {};
+  data.forEach((transaction) => {
+    const date = new Date(transaction.fecha + 'T00:00:00'); // Forzar interpretación local
+    const weekNumber = Math.ceil(date.getDate() / 7); // Usar getDate() en lugar de getUTCDate()
+    const weekKey = `Semana ${weekNumber}`;
+
+    if (!weeks[weekKey]) {
+      weeks[weekKey] = { ingresos: 0, gastos: 0, transacciones: 0 };
+    }
+
+    weeks[weekKey].transacciones++;
+    if (transaction.tipo === "ingreso") {
+      weeks[weekKey].ingresos += parseFloat(transaction.monto);
+    } else {
+      weeks[weekKey].gastos += parseFloat(transaction.monto);
+    }
+  });
+
+  return Object.entries(weeks).map(([week, data]) => ({
+    week,
+    ...data,
+    balance: parseFloat((data.ingresos - data.gastos).toFixed(2)),
+  }));
+}
+
+// Get weekly analysis for a specific month and year
+export async function getWeeklyAnalysisForMonth(user_id, year, month) {
+  const startOfMonth = new Date(year, month - 1, 1);
+  const endOfMonth = new Date(year, month, 0);
 
   // Formatear fechas como YYYY-MM-DD en tiempo local
   const formatLocalDate = (date) => {
