@@ -64,3 +64,14 @@ export async function deleteConfig(id) {
     if (error) throw error;
     return true;
 }
+
+// Read config by user id
+export async function getConfigByUserId(user_id) {
+    const { data, error } = await supabase
+        .from('config')
+        .select('*')
+        .eq('user_id', user_id)
+        .single();
+    if (error) throw error;
+    return data;
+}

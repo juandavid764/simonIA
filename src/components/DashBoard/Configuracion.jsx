@@ -1,77 +1,120 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { updateUser } from "../../supabase/user";
-import { updateConfigByUserId } from "../../supabase/config";
+import { updateConfigByUserId, getConfigByUserId } from "../../supabase/config";
 
 export const Configuracion = () => {
-  const { user } = useAuth();
-  const [notificaciones, setNotificaciones] = useState(true);
-
-  const [userData, setUserData] = useState({
+  const { user, setUser } = useAuth();
+  let initialConfig;
+  const [configForm, setConfigForm] = useState(false);
+  const [userDataForm, setUserDataForm] = useState({
     nombre: user.nombre,
-    telefono: user.telefono,
+    telefono: user.telefono.startsWith("57")
+      ? user.telefono.slice(2)
+      : user.telefono,
     contrasena: "",
   });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setUserData((prev) => ({
+    setUserDataForm((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
   const handleToggleNotificaciones = () => {
-    setNotificaciones((prev) => !prev);
-    // Aquí podrías guardar la preferencia en backend o localStorage si lo deseas
+    setConfigForm((prev) => !prev);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     // Validar formato del teléfono
     const phoneRegex = /^\d{10}$/;
-    if (!phoneRegex.test(userData.telefono)) {
+    if (!phoneRegex.test(userDataForm.telefono)) {
       alert("Por favor, ingresa un número de teléfono válido de 10 dígitos.");
       return;
     }
 
+    // Variables para manejar el estado de las actualizaciones
     let userUpdateOk = true;
     let configUpdateOk = true;
     let userError = null;
-    let configError = null;
+    let configError = null; // Actualizar datos de usuario
+    const dataUserUpdate = {
+      telefono: `57${userDataForm.telefono}`,
+      nombre: userDataForm.nombre,
+    };
 
-    // Actualizar datos de usuario
+    if (userDataForm.contrasena !== "") {
+      dataUserUpdate.contrasena = userDataForm.contrasena;
+    }
+
     try {
-      await updateUser(user.id, {
-        telefono: userData.telefono,
-        nombre: userData.nombre,
-        contrasena: userData.contrasena,
-      });
+      await updateUser(user.id, dataUserUpdate);
+      // Actualizar el estado del usuario en el contexto y localStorage
+      setUser((prev) => ({
+        ...prev,
+        ...dataUserUpdate,
+      }));
+
     } catch (err) {
       userUpdateOk = false;
       userError = err?.message || err;
     }
 
-    // Actualizar preferencia de notificaciones
-    try {
-      await updateConfigByUserId(user.id, {
-        recordatorio: notificaciones,
-      });
-    } catch (err) {
-      configUpdateOk = false;
-      configError = err?.message || err;
+    if (initialConfig && initialConfig.recordatorio === configForm) {
+      // Si la configuración no ha cambiado, no actualizamos
+    } else {
+      // Actualizar preferencia de notificaciones
+      try {
+        await updateConfigByUserId(user.id, {
+          recordatorio: configForm,
+        });
+      } catch (err) {
+        configUpdateOk = false;
+        configError = err?.message || err;
+      }
     }
 
     if (userUpdateOk && configUpdateOk) {
       alert("Datos y preferencias actualizados exitosamente.");
     } else if (!userUpdateOk && !configUpdateOk) {
-      alert("Error al actualizar los datos y preferencias. Por favor, intenta nuevamente.\n" + userError + "\n" + configError);
+      alert(
+        "Error al actualizar los datos y preferencias. Por favor, intenta nuevamente.\n" +
+          userError +
+          "\n" +
+          configError
+      );
     } else if (!userUpdateOk) {
-      alert("Error al actualizar los datos del usuario. Por favor, intenta nuevamente.\n" + userError);
+      alert(
+        "Error al actualizar los datos del usuario. Por favor, intenta nuevamente.\n" +
+          userError
+      );
     } else if (!configUpdateOk) {
-      alert("Error al actualizar las preferencias. Por favor, intenta nuevamente.\n" + configError);
+      alert(
+        "Error al actualizar las preferencias. Por favor, intenta nuevamente.\n" +
+          configError
+      );
     }
   };
+
+  // Cargar configuración al montar el componente
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const config = await getConfigByUserId(user.id);
+        if (config) {
+          setConfigForm(config.recordatorio);
+          initialConfig = config.recordatorio;
+        }
+      } catch (error) {
+        console.error("Error al obtener la configuración:", error);
+      }
+    };
+
+    fetchConfig();
+  }, [user.id]);
 
   return (
     <div className="space-y-6">
@@ -92,16 +135,16 @@ export const Configuracion = () => {
               </div>
               <button
                 className={`w-12 h-6 rounded-full relative transition-colors duration-200 ${
-                  notificaciones ? "bg-[#25D366]" : "bg-gray-500"
+                  configForm ? "bg-[#25D366]" : "bg-gray-500"
                 }`}
                 onClick={handleToggleNotificaciones}
-                aria-pressed={notificaciones}
+                aria-pressed={configForm}
                 aria-label="Activar o desactivar notificaciones"
                 type="button"
               >
                 <span
                   className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${
-                    notificaciones ? "left-7" : "left-1"
+                    configForm ? "left-7" : "left-1"
                   }`}
                 ></span>
               </button>
@@ -121,24 +164,29 @@ export const Configuracion = () => {
               <input
                 type="text"
                 name="nombre"
-                value={userData.nombre}
+                value={userDataForm.nombre}
                 onChange={handleInputChange}
                 placeholder="Nuevo nombre"
                 className="w-full rounded-md border-0 px-3.5 py-2 text-[#E9EDEF] shadow-sm ring-1 ring-inset ring-[#2A3942] bg-[#2A3942] placeholder:text-[#8696A0] focus:ring-2 focus:ring-inset focus:ring-[#00A884] sm:text-sm sm:leading-6"
               />
-            </div>
+            </div>{" "}
             <div>
               <label className="block text-sm font-medium text-[#E9EDEF] mb-1">
                 Teléfono
               </label>
-              <input
-                type="tel"
-                name="telefono"
-                value={userData.telefono}
-                onChange={handleInputChange}
-                placeholder="Nuevo número de WhatsApp"
-                className="w-full rounded-md border-0 px-3.5 py-2 text-[#E9EDEF] shadow-sm ring-1 ring-inset ring-[#2A3942] bg-[#2A3942] placeholder:text-[#8696A0] focus:ring-2 focus:ring-inset focus:ring-[#00A884] sm:text-sm sm:leading-6"
-              />
+              <div className="flex items-center">
+                <span className="h-10 inline-flex items-center px-3 rounded-l-md border-0 font-bold bg-[#2A3942] text-[#8696A0] sm:text-sm">
+                  +57
+                </span>
+                <input
+                  type="tel"
+                  name="telefono"
+                  value={userDataForm.telefono}
+                  onChange={handleInputChange}
+                  placeholder="350 768 9818"
+                  className="w-full rounded-r-md border-0 px-3.5 py-2 text-[#E9EDEF] shadow-sm ring-1 ring-inset ring-[#2A3942] bg-[#2A3942] placeholder:text-[#8696A0] focus:ring-2 focus:ring-inset focus:ring-[#00A884] sm:text-sm sm:leading-6"
+                />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-[#E9EDEF] mb-1">
@@ -147,7 +195,7 @@ export const Configuracion = () => {
               <input
                 type="password"
                 name="contrasena"
-                value={userData.contrasena}
+                value={userDataForm.contrasena}
                 onChange={handleInputChange}
                 placeholder="Nueva contraseña"
                 className="w-full rounded-md border-0 px-3.5 py-2 text-[#E9EDEF] shadow-sm ring-1 ring-inset ring-[#2A3942] bg-[#2A3942] placeholder:text-[#8696A0] focus:ring-2 focus:ring-inset focus:ring-[#00A884] sm:text-sm sm:leading-6"

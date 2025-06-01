@@ -4,6 +4,7 @@ import { Register } from "../components/home/Register";
 import { WhatIs } from "../components/home/WhatIs";
 import { Examples } from "../components/home/Examples";
 import { Demo } from "../components/home/Demo";
+import { Tips } from "../components/home/Tips";
 
 export const HomePage = () => {
   return (
@@ -15,6 +16,7 @@ export const HomePage = () => {
         <WhatIs />
         <Examples />
         <Demo />
+        <Tips />
       </main>
       <footer className="bg-gray-800">
         <div className="container-custom py-12">

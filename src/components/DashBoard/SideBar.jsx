@@ -1,15 +1,13 @@
-import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
-  Activity,
-  BarChart2,
-  Settings,
-  HelpCircle,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { dashboardRoot } from "../../models/NavigationTree.jsx";
 
 // Utility function for conditional classes
 const cn = (...classes) => {
@@ -47,21 +45,44 @@ const Button = ({
   );
 };
 
-// Create navigation items
-const sidebarItems = [
-  { name: "Transacciones", path: "/Dashboard/transacciones", icon: Activity },
-  { name: "Estadisticas", path: "/Dashboard/estadisticas", icon: BarChart2 },
-  { name: "Configuracion", path: "/Dashboard/configuracion", icon: Settings },
-  { name: "Soporte", path: "/Dashboard/soporte", icon: HelpCircle },
-];
-
 export const Sidebar = () => {
   const { logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showChildren, setShowChildren] = useState({});
+  const [activeTitle, setActiveTitle] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Efecto para expandir automáticamente el menú padre cuando estamos en una subruta
+  useEffect(() => {
+    const currentPath = location.pathname;
+    
+    dashboardRoot.hijos.forEach(node => {
+      const hasActiveChild = node.hijos.some(child => child.link === currentPath);
+      if (hasActiveChild && !isCollapsed) {
+        setShowChildren(prev => ({
+          ...prev,
+          [node.title]: true
+        }));
+      }
+    });
+  }, [location.pathname, isCollapsed]);
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
+    // Si se colapsa, cerrar todos los submenús
+    if (!isCollapsed) {
+      setShowChildren({});
+    }
+  };
+
+  const toggleChildrenVisibility = (title) => {
+    if (isCollapsed) return; // No expandir si está colapsado
+    
+    setShowChildren((prevState) => ({
+      ...prevState,
+      [title]: !prevState[title],
+    }));
   };
 
   const handleLogout = () => {
@@ -93,31 +114,98 @@ export const Sidebar = () => {
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </Button>
-      </div>
-
-      <nav className="flex-1 py-4 sm:py-6 overflow-y-auto">
-        <ul className="space-y-2 px-1 sm:px-2">
-          {sidebarItems.map((item) => (
-            <li key={item.path}>
-              <NavLink
-                to={item.path}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center p-2 sm:p-3 rounded-lg transition-colors",
-                    "hover:bg-[#128C7E]/10",
-                    "hover:text-[#25D366]",
-                    isActive
+      </div>      <nav className="flex-1 py-4 sm:py-6 overflow-y-auto">
+        <ul className="space-y-1 px-1 sm:px-2">
+          {dashboardRoot.hijos.map((node) => (
+            <li key={node.title}>              {/* Nodo principal */}
+              <div className="mb-1">
+                <div
+                  className={cn(
+                    "flex items-center p-2 sm:p-3 rounded-lg transition-colors cursor-pointer",
+                    "hover:bg-[#128C7E]/10 hover:text-[#25D366]",
+                    // Resaltar si es el nodo activo O si estamos en una de sus subrutas
+                    activeTitle === node.title || 
+                    node.hijos.some(child => location.pathname === child.link) ||
+                    location.pathname === node.link
                       ? "bg-[#128C7E]/20 text-[#25D366]"
                       : "text-gray-300",
-                    isCollapsed ? "justify-center" : ""
-                  )
-                }
-              >
-                <item.icon size={20} className="flex-shrink-0" />
-                {!isCollapsed && (
-                  <span className="ml-2 sm:ml-3 font-medium text-xs sm:text-base">{item.name}</span>
+                    isCollapsed ? "justify-center" : "justify-between"
+                  )}                  onClick={() => {
+                    setActiveTitle(node.title);
+                    if (node.hijos.length > 0) {
+                      if (isCollapsed) {
+                        // Si está colapsado y tiene hijos, expandir el sidebar
+                        setIsCollapsed(false);
+                        // Después de expandir, mostrar los hijos
+                        setTimeout(() => {
+                          setShowChildren(prev => ({
+                            ...prev,
+                            [node.title]: true
+                          }));
+                        }, 100);
+                      } else {
+                        toggleChildrenVisibility(node.title);
+                      }
+                    }
+                  }}
+                >
+                  <NavLink
+                    to={node.link}
+                    className="flex items-center flex-1"                    onClick={(e) => {
+                      if (node.hijos.length > 0) {
+                        if (isCollapsed) {
+                          // Si está colapsado y tiene hijos, prevenir navegación para expandir primero
+                          e.preventDefault();
+                        } else if (!isCollapsed) {
+                          // Si no está colapsado y tiene hijos, prevenir navegación para mostrar submenú
+                          e.preventDefault();
+                        }
+                      }
+                    }}
+                  >
+                    {node.icon && <node.icon size={20} className="flex-shrink-0" />}
+                    {!isCollapsed && (
+                      <span className="ml-2 sm:ml-3 font-medium text-xs sm:text-base">
+                        {node.title}
+                      </span>
+                    )}
+                  </NavLink>
+                  
+                  {/* Indicador de expansión */}
+                  {!isCollapsed && node.hijos.length > 0 && (
+                    showChildren[node.title] ? (
+                      <ChevronDown size={16} className="text-white" />
+                    ) : (
+                      <ChevronRight size={16} className="text-white" />
+                    )
+                  )}
+                </div>
+
+                {/* Submenús */}
+                {!isCollapsed && showChildren[node.title] && node.hijos.length > 0 && (
+                  <div className="ml-4 mt-1 bg-[#0F1419] rounded-lg border border-[#222E35]/50">
+                    {node.hijos.map((subItem) => (
+                      <NavLink
+                        key={subItem.title}
+                        to={subItem.link}
+                        className={({ isActive }) =>
+                          cn(
+                            "flex items-center p-2 sm:p-3 rounded-lg transition-colors text-sm",
+                            "hover:bg-[#128C7E]/10 hover:text-[#25D366]",
+                            isActive || activeTitle === subItem.title
+                              ? "bg-[#128C7E]/15 text-[#25D366]"
+                              : "text-gray-400"
+                          )
+                        }
+                        onClick={() => setActiveTitle(subItem.title)}
+                      >
+                        {subItem.icon && <subItem.icon size={16} className="flex-shrink-0" />}
+                        <span className="ml-2 font-medium">{subItem.title}</span>
+                      </NavLink>
+                    ))}
+                  </div>
                 )}
-              </NavLink>
+              </div>
             </li>
           ))}
         </ul>
