@@ -181,18 +181,16 @@ export const Estadisticas = () => {
         </div>
       </div>
     );
-  }
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-[#25D366]">
+  }  return (
+    <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h2 className="text-xl md:text-2xl font-bold text-[#25D366]">
           Estadísticas Financieras
         </h2>
-        <div className="flex gap-2 items-center">
-          {/* Period selector */}
+        <div className="flex flex-wrap gap-2 items-center justify-start sm:justify-end">          {/* Period selector */}
           <button
             onClick={() => setSelectedPeriod("month")}
-            className={`px-3 py-1 rounded text-sm transition-colors ${
+            className={`px-3 py-2 rounded text-sm transition-colors ${
               selectedPeriod === "month"
                 ? "bg-[#25D366] text-[#111B21]"
                 : "bg-[#222E35] text-gray-300 hover:bg-[#25D366]/20"
@@ -202,7 +200,7 @@ export const Estadisticas = () => {
           </button>
           <button
             onClick={() => setSelectedPeriod("year")}
-            className={`px-3 py-1 rounded text-sm transition-colors ${
+            className={`px-3 py-2 rounded text-sm transition-colors ${
               selectedPeriod === "year"
                 ? "bg-[#25D366] text-[#111B21]"
                 : "bg-[#222E35] text-gray-300 hover:bg-[#25D366]/20"
@@ -211,20 +209,20 @@ export const Estadisticas = () => {
             Año
           </button>          {/* Month/Year selector */}
           {selectedPeriod === "month" && (
-            <div className="relative" ref={monthSelectorRef}>
+            <div className="relative w-full sm:w-auto" ref={monthSelectorRef}>
               <button
                 onClick={() => setShowMonthSelector(!showMonthSelector)}
-                className="flex items-center gap-2 px-3 py-1 bg-[#222E35] text-gray-300 rounded text-sm hover:bg-[#25D366]/20 transition-colors"
+                className="flex items-center justify-between w-full sm:w-auto gap-2 px-3 py-2 bg-[#222E35] text-gray-300 rounded text-sm hover:bg-[#25D366]/20 transition-colors min-w-[120px]"
               >
-                {getSelectedMonthName()} {selectedYear}
+                <span className="truncate">{getSelectedMonthName()} {selectedYear}</span>
                 <ChevronDown 
                   size={16} 
-                  className={`transition-transform ${showMonthSelector ? 'rotate-180' : ''}`} 
+                  className={`transition-transform flex-shrink-0 ${showMonthSelector ? 'rotate-180' : ''}`} 
                 />
               </button>
               
               {showMonthSelector && (
-                <div className="absolute right-0 top-full mt-1 bg-[#111B21] border border-[#222E35] rounded-lg shadow-lg z-10 min-w-[200px]">
+                <div className="absolute right-0 top-full mt-1 bg-[#111B21] border border-[#222E35] rounded-lg shadow-lg z-10 w-full sm:w-[200px] min-w-[200px]">
                   <div className="p-2">
                     <div className="mb-2">
                       <label className="text-xs text-gray-400 block mb-1">Año</label>
@@ -262,14 +260,12 @@ export const Estadisticas = () => {
                 </div>
               )}
             </div>
-          )}
-
-          {selectedPeriod === "year" && (
-            <div className="flex items-center gap-2">
+          )}          {selectedPeriod === "year" && (
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="px-3 py-1 bg-[#222E35] text-gray-300 rounded text-sm border border-[#2A3942] focus:border-[#25D366] focus:outline-none"
+                className="w-full sm:w-auto px-3 py-2 bg-[#222E35] text-gray-300 rounded text-sm border border-[#2A3942] focus:border-[#25D366] focus:outline-none"
               >
                 {getAvailableYears().map(year => (
                   <option key={year} value={year}>{year}</option>
@@ -280,29 +276,27 @@ export const Estadisticas = () => {
         </div>
       </div>      {/* Resumen Principal */}
       {selectedPeriod === "month" && currentStats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-[#111B21] p-6 rounded-lg border border-[#222E35]">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-green-900/50 rounded-lg">
-                <TrendingUp className="text-green-400" size={24} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">          <div className="bg-[#111B21] p-3 sm:p-4 md:p-6 rounded-lg border border-[#222E35]">
+            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <div className="p-1.5 sm:p-2 bg-green-900/50 rounded-lg flex-shrink-0">
+                <TrendingUp className="text-green-400" size={16} />
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-400">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-xs sm:text-sm md:text-sm font-medium text-gray-400 mb-1">
                   Ingresos de {getSelectedMonthName()} {selectedYear}
                 </h3>
-                <p className="text-2xl font-bold text-green-400">
+                <p className="text-base sm:text-lg md:text-2xl font-bold text-green-400 truncate">
                   {formatCurrency(currentStats?.total_ingresos)}
                 </p>
               </div>
-            </div>
-            {comparison && (
-              <div className="flex items-center gap-1 text-sm">
+            </div>{comparison && (
+              <div className="flex items-center gap-1 text-xs md:text-sm flex-wrap">
                 {comparison.current.ingresos > comparison.previous.ingresos ? (
-                  <ArrowUpRight className="text-green-400" size={16} />
+                  <ArrowUpRight className="text-green-400 flex-shrink-0" size={14} />
                 ) : comparison.current.ingresos < comparison.previous.ingresos ? (
-                  <ArrowDownRight className="text-red-400" size={16} />
+                  <ArrowDownRight className="text-red-400 flex-shrink-0" size={14} />
                 ) : (
-                  <Minus className="text-gray-400" size={16} />
+                  <Minus className="text-gray-400 flex-shrink-0" size={14} />
                 )}
                 <span
                   className={`font-medium ${
@@ -321,33 +315,33 @@ export const Estadisticas = () => {
                   ).toFixed(1)}
                   %
                 </span>
-                <span className="text-gray-400">vs mes anterior</span>
+                <span className="text-gray-400 truncate">vs mes anterior</span>
               </div>
             )}
           </div>
 
-          <div className="bg-[#111B21] p-6 rounded-lg border border-[#222E35]">
+          <div className="bg-[#111B21] p-4 md:p-6 rounded-lg border border-[#222E35]">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-red-900/50 rounded-lg">
-                <TrendingDown className="text-red-400" size={24} />
+              <div className="p-2 bg-red-900/50 rounded-lg flex-shrink-0">
+                <TrendingDown className="text-red-400" size={20} />
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-400">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-xs md:text-sm font-medium text-gray-400 mb-1">
                   Gastos de {getSelectedMonthName()} {selectedYear}
                 </h3>
-                <p className="text-2xl font-bold text-red-400">
+                <p className="text-lg md:text-2xl font-bold text-red-400 truncate">
                   {formatCurrency(currentStats?.total_gastos)}
                 </p>
               </div>
             </div>
             {comparison && (
-              <div className="flex items-center gap-1 text-sm">
+              <div className="flex items-center gap-1 text-xs md:text-sm flex-wrap">
                 {comparison.current.gastos > comparison.previous.gastos ? (
-                  <ArrowUpRight className="text-red-400" size={16} />
+                  <ArrowUpRight className="text-red-400 flex-shrink-0" size={14} />
                 ) : comparison.current.gastos < comparison.previous.gastos ? (
-                  <ArrowDownRight className="text-green-400" size={16} />
+                  <ArrowDownRight className="text-green-400 flex-shrink-0" size={14} />
                 ) : (
-                  <Minus className="text-gray-400" size={16} />
+                  <Minus className="text-gray-400 flex-shrink-0" size={14} />
                 )}
                 <span
                   className={`font-medium ${
@@ -366,15 +360,15 @@ export const Estadisticas = () => {
                   ).toFixed(1)}
                   %
                 </span>
-                <span className="text-gray-400">vs mes anterior</span>
+                <span className="text-gray-400 truncate">vs mes anterior</span>
               </div>
             )}
           </div>
 
-          <div className="bg-[#111B21] p-6 rounded-lg border border-[#222E35]">
+          <div className="bg-[#111B21] p-4 md:p-6 rounded-lg border border-[#222E35]">
             <div className="flex items-center gap-3 mb-4">
               <div
-                className={`p-2 rounded-lg ${
+                className={`p-2 rounded-lg flex-shrink-0 ${
                   (currentStats?.resultado || 0) >= 0
                     ? "bg-green-900/50"
                     : "bg-red-900/50"
@@ -386,15 +380,15 @@ export const Estadisticas = () => {
                       ? "text-green-400"
                       : "text-red-400"
                   }`}
-                  size={24}
+                  size={20}
                 />
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-400">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-xs md:text-sm font-medium text-gray-400 mb-1">
                   Balance de {getSelectedMonthName()} {selectedYear}
                 </h3>
                 <p
-                  className={`text-2xl font-bold ${
+                  className={`text-lg md:text-2xl font-bold truncate ${
                     (currentStats?.resultado || 0) >= 0
                       ? "text-green-400"
                       : "text-red-400"
@@ -405,13 +399,13 @@ export const Estadisticas = () => {
               </div>
             </div>
             {comparison && (
-              <div className="flex items-center gap-1 text-sm">
+              <div className="flex items-center gap-1 text-xs md:text-sm flex-wrap">
                 {comparison.current.balance > comparison.previous.balance ? (
-                  <ArrowUpRight className="text-green-400" size={16} />
+                  <ArrowUpRight className="text-green-400 flex-shrink-0" size={14} />
                 ) : comparison.current.balance < comparison.previous.balance ? (
-                  <ArrowDownRight className="text-red-400" size={16} />
+                  <ArrowDownRight className="text-red-400 flex-shrink-0" size={14} />
                 ) : (
-                  <Minus className="text-gray-400" size={16} />
+                  <Minus className="text-gray-400 flex-shrink-0" size={14} />
                 )}
                 <span
                   className={`font-medium ${
@@ -428,7 +422,7 @@ export const Estadisticas = () => {
                     )
                   )}
                 </span>
-                <span className="text-gray-400">diferencia</span>
+                <span className="text-gray-400 truncate">diferencia</span>
               </div>
             )}
           </div>
