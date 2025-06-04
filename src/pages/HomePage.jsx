@@ -5,6 +5,7 @@ import { WhatIs } from "../components/home/WhatIs";
 import { Examples } from "../components/home/Examples";
 import { Demo } from "../components/home/Demo";
 import { Tips } from "../components/home/Tips";
+import { Footer } from "../components/home/Footer";
 
 export const HomePage = () => {
   return (
@@ -16,15 +17,8 @@ export const HomePage = () => {
         <WhatIs />
         <Examples />
         <Demo />
-        <Tips />
-      </main>
-      <footer className="bg-gray-800">
-        <div className="container-custom py-12">
-          <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-            <p>© 2025 SimonIA. Todos los derechos reservados.</p>
-          </div>
-        </div>
-      </footer>
+        <Tips />      </main>
+      <Footer />
     </div>
   );
 };

@@ -5,6 +5,7 @@ import { Transacciones } from "../components/DashBoard/Transacciones";
 import { Estadisticas } from "../components/DashBoard/Estadisticas";
 import { Configuracion } from "../components/DashBoard/Configuracion";
 import { Soporte } from "../components/DashBoard/Soporte";
+import { PrivacyPage } from "../components/DashBoard/PrivacyPage";
 
 export const UserRoutes = () => {
   return (
@@ -20,10 +21,9 @@ export const UserRoutes = () => {
         <Route
           path="/Dashboard/configuracion/profile"
           element={<Configuracion />}
-        />
-        <Route
+        />        <Route
           path="/Dashboard/configuracion/privacy"
-          element={<Configuracion />}
+          element={<PrivacyPage />}
         />
         <Route index element={<Transacciones />} />
       </Route>

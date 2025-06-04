@@ -5,6 +5,7 @@ import {
   Settings,
   HelpCircle,
   User,
+  FileText,
 } from "lucide-react";
 
 // Datos de navegación del dashboard
@@ -13,6 +14,7 @@ const dashboardData = {
   Estadisticas: [],
   Configuración: [
     { "Perfil": "/Dashboard/configuracion/profile" },
+    { "Privacidad": "/Dashboard/configuracion/privacy" },
     { "Soporte": "/Dashboard/soporte" }
   ]
 };
@@ -27,6 +29,7 @@ const iconMap = {
   
   // Iconos de submenús - Solo Configuración
   "Perfil": User,
+  "Privacidad": FileText,
   "Soporte": HelpCircle
 };
 
