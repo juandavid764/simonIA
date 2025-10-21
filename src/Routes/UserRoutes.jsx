@@ -6,6 +6,7 @@ import { Estadisticas } from "../components/DashBoard/Estadisticas";
 import { Configuracion } from "../components/DashBoard/Configuracion";
 import { Soporte } from "../components/DashBoard/Soporte";
 import { PrivacyPage } from "../components/DashBoard/PrivacyPage";
+import PlanesPage from "../components/DashBoard/PlanesPage";
 
 export const UserRoutes = () => {
   return (
@@ -17,11 +18,13 @@ export const UserRoutes = () => {
         <Route path="/Dashboard/estadisticas" element={<Estadisticas />} />
         <Route path="/Dashboard/configuracion" element={<Configuracion />} />
         <Route path="/Dashboard/soporte" element={<Soporte />} />
+        <Route path="/Dashboard/planes" element={<PlanesPage />} />
         {/* Subrutas de Configuración */}
         <Route
           path="/Dashboard/configuracion/profile"
           element={<Configuracion />}
-        />        <Route
+        />{" "}
+        <Route
           path="/Dashboard/configuracion/privacy"
           element={<PrivacyPage />}
         />
