@@ -156,6 +156,7 @@ const PaymentModal = ({
     setIsProcessing(true);
     try {
       // Verificar el estado del token de Nequi
+      console.log("");
       const result = await verifyNequiSubscription(nequiTokenData.data.id);
       if (result === true) {
         console.log("✅ Token de Nequi verificado correctamente");

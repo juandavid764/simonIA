@@ -116,11 +116,11 @@ export async function verifyNequiSubscription(token) {
       );
     }
 
-    const data = await response.json();
-    console.log("Estado del token de Nequi:", data);
+    const nequiData = await response.json();
+    console.log("Estado del token de Nequi:", nequiData);
 
     // Verificar si el estado es APPROVED
-    return data.status === "APPROVED";
+    return nequiData.data.status === "APPROVED";
   } catch (error) {
     console.error("Error al verificar Nequi:", error);
     throw error;

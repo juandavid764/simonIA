@@ -53,7 +53,8 @@ const NequiVerification = ({ onVerify, onCancel, onClose }) => {
         {/* Additional info */}
         <div className="mt-6 text-center">
           <a
-            href="#"
+            href="https://ayuda.nequi.com.co/hc/es/articles/35211217114125--C%C3%B3mo-acepto-un-pago-autom%C3%A1tico-en-Nequi"
+            target="_blank"
             className="text-[#25D366] hover:underline text-sm font-medium"
           >
             MÁS INFORMACIÓN

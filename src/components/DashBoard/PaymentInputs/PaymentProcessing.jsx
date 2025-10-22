@@ -16,48 +16,37 @@ const PaymentProcessing = ({
   useEffect(() => {
     if (!paymentId || !userId) return;
 
-    // Suscripción en tiempo real a la tabla payments
-    const subscription = supabase
-      .channel(`payment-${paymentId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "payments",
-          filter: `wompi_transaction_id=eq.${paymentId}`,
-        },
-        (payload) => {
-          console.log("📡 Cambio detectado en payment:", payload);
+    // Función común para manejar los cambios de estado
+    const handlePaymentChange = (newData) => {
+      console.log("🔄 Procesando cambio de pago:", newData);
+      setPaymentData(newData);
 
-          if (payload.eventType === "UPDATE") {
-            const newData = payload.new;
-            setPaymentData(newData);
+      switch (newData.status) {
+        case "APPROVED":
+          setStatus("completed");
+          break;
+        case "DECLINED":
+          setStatus("declined");
+          setError(newData.status_message || "El pago fue rechazado");
+          break;
+        case "VOIDED":
+          setStatus("voided");
+          setError(newData.status_message || "El pago fue anulado");
+          break;
+        case "ERROR":
+          setStatus("error");
+          setError(newData.status_message || "Ocurrió un error con el pago");
+          break;
+        case "PENDING":
+        default:
+          setStatus("processing");
+          break;
+      }
+    };
 
-            // Actualizar estado según el status del payment
-            if (newData.status === "APPROVED") {
-              setStatus("completed");
-            } else if (newData.status === "DECLINED") {
-              setStatus("declined");
-              setError(newData.status_message || "El pago fue rechazado");
-            } else if (newData.status === "VOIDED") {
-              setStatus("voided");
-              setError(newData.status_message || "El pago fue anulado");
-            } else if (newData.status === "ERROR") {
-              setStatus("error");
-              setError(
-                newData.status_message || "Ocurrió un error con el pago"
-              );
-            } else if (newData.status === "PENDING") {
-              setStatus("processing");
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    // Consultar el estado inicial
+    // Estado inicial (por si ya existía)
     const fetchInitialStatus = async () => {
+      console.log("🔍 Buscando estado inicial para paymentId:", paymentId);
       try {
         const { data, error } = await supabase
           .from("payments")
@@ -65,38 +54,79 @@ const PaymentProcessing = ({
           .eq("wompi_transaction_id", paymentId)
           .single();
 
-        if (error) throw error;
+        console.log("📊 Resultado de búsqueda inicial:", { data, error });
+
+        if (error && error.code !== "PGRST116") throw error; // ignora si no hay fila
 
         if (data) {
-          setPaymentData(data);
-
-          if (data.status === "APPROVED") {
-            setStatus("completed");
-            setTimeout(() => {
-              if (onSuccess) onSuccess(data);
-            }, 2000);
-          } else if (data.status === "DECLINED") {
-            setStatus("declined");
-            setError(data.status_message || "El pago fue rechazado");
-          } else if (data.status === "VOIDED") {
-            setStatus("voided");
-            setError(data.status_message || "El pago fue anulado");
-          } else if (data.status === "ERROR") {
-            setStatus("error");
-            setError(data.status_message || "Ocurrió un error con el pago");
-          }
+          console.log("✅ Registro existente encontrado, procesando...");
+          handlePaymentChange(data);
+        } else {
+          console.log(
+            "⏳ No hay registro aún, esperando INSERT en tiempo real..."
+          );
         }
       } catch (err) {
-        console.error("Error al obtener estado inicial del pago:", err);
+        console.error("❌ Error al obtener estado inicial:", err);
         setError("No se pudo verificar el estado del pago");
       }
     };
 
-    fetchInitialStatus();
+    // Canal de Supabase
+    const channel = supabase.channel(`payment-${paymentId}`);
 
-    // Cleanup: desuscribirse cuando el componente se desmonte
+    // INSERT
+    channel.on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "payments",
+        filter: `wompi_transaction_id=eq.${paymentId}`,
+      },
+      (payload) => {
+        console.log("🆕 Nuevo registro de pago detectado:", payload);
+        handlePaymentChange(payload.new);
+      }
+    );
+
+    // UPDATE
+    channel.on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "payments",
+        filter: `wompi_transaction_id=eq.${paymentId}`,
+      },
+      (payload) => {
+        console.log("📡 Actualización de pago detectada:", payload);
+        handlePaymentChange(payload.new);
+      }
+    );
+
+    // Inicializar: suscribirse primero, luego buscar estado inicial
+    const initializePaymentTracking = () => {
+      console.log("🚀 Inicializando seguimiento de pago para:", paymentId);
+
+      // Suscribirse con callback
+      channel.subscribe((status) => {
+        console.log("📡 Estado de suscripción:", status);
+
+        // Solo cuando la suscripción esté activa, buscar estado inicial
+        if (status === "SUBSCRIBED") {
+          console.log("✓ Suscripción activa, buscando estado inicial...");
+          fetchInitialStatus();
+        }
+      });
+    };
+
+    initializePaymentTracking();
+
+    // Cleanup
     return () => {
-      subscription.unsubscribe();
+      console.log("🧹 Limpiando suscripción para:", paymentId);
+      channel.unsubscribe();
     };
   }, [paymentId, userId, onSuccess]);
 
