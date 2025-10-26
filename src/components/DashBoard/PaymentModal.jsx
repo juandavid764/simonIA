@@ -10,6 +10,7 @@ import PaymentProcessing from "./PaymentInputs/PaymentProcessing";
 import {
   tokenizeCard,
   tokenizeNequi,
+  tokenizeBancolombia,
   verifyNequiSubscription,
   createPaymentSource,
   createSubscription,
@@ -156,10 +157,9 @@ const PaymentModal = ({
     setIsProcessing(true);
     try {
       // Verificar el estado del token de Nequi
-      console.log("");
       const result = await verifyNequiSubscription(nequiTokenData.data.id);
       if (result === true) {
-        console.log("✅ Token de Nequi verificado correctamente");
+        // Token verificado correctamente
       } else {
         alert("Suscripción no verificada, Confirma en la app de Nequi");
         setIsProcessing(false);
@@ -173,8 +173,6 @@ const PaymentModal = ({
         merchantData?.data?.presigned_personal_data_auth?.acceptance_token;
 
       // Crear método de pago (Payment Source) con Nequi
-      console.log("Creando método de pago Nequi (Payment Source)...");
-
       const paymentSource = await createPaymentSource({
         userId: user.id,
         token: nequiTokenData.data.id,
@@ -184,14 +182,7 @@ const PaymentModal = ({
         accept_personal_auth: acceptPersonalAuth,
       });
 
-      console.log(
-        "✅ Método de pago Nequi creado exitosamente:",
-        paymentSource
-      );
-
       // Crear la suscripción usando el ID del payment source
-      console.log("Creando suscripción Nequi con el Payment Source...");
-
       const subscriptionData = await createSubscription({
         user_id: user.id,
         payment_source_id: paymentSource.id,
@@ -199,10 +190,8 @@ const PaymentModal = ({
         email: email,
       });
 
-      console.log(
-        "✅ Suscripción Nequi creada exitosamente:",
-        subscriptionData
-      );
+      // Limpiar tokens de aceptación después de usar
+      sessionStorage.removeItem("merchant_acceptance_tokens");
 
       // Guardar el ID del pago y mostrar pantalla de procesamiento
       const paymentId =
@@ -233,16 +222,12 @@ const PaymentModal = ({
 
   // Callbacks para PaymentProcessing
   const handlePaymentSuccess = (subscriptionData) => {
-    console.log("✅ Pago completado exitosamente:", subscriptionData);
-    // Aquí puedes agregar lógica adicional, como actualizar el estado de la app
-    // o redirigir al usuario
+    // Pago completado exitosamente
     setShowPaymentProcessing(false);
     onClose();
-    // Podrías agregar una notificación de éxito o recargar datos del usuario
   };
 
   const handlePaymentCancel = () => {
-    console.log("❌ Pago cancelado");
     setShowPaymentProcessing(false);
     setCreatedPaymentId(null);
     // Volver a mostrar el formulario de pago
@@ -265,8 +250,13 @@ const PaymentModal = ({
     }
 
     // Validar según el método de pago
-    const validationErrors =
-      paymentMethod === "card" ? validateCardData() : validateNequiData();
+    let validationErrors = {};
+    if (paymentMethod === "card") {
+      validationErrors = validateCardData();
+    } else if (paymentMethod === "nequi") {
+      validationErrors = validateNequiData();
+    }
+    // Bancolombia no necesita validaciones adicionales
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -293,11 +283,8 @@ const PaymentModal = ({
 
       // Tokenizar según el método de pago
       if (paymentMethod === "card") {
-        console.log("Tokenizando tarjeta...");
         tokenData = await tokenizeCard(cardData);
-        console.log("✅ Tokenización exitosa:", tokenData);
       } else if (paymentMethod === "nequi") {
-        console.log("Tokenizando Nequi...");
         tokenData = await tokenizeNequi(nequiData.phone);
 
         // Guardar el token y mostrar pantalla de verificación de Nequi
@@ -305,6 +292,54 @@ const PaymentModal = ({
         setShowNequiVerification(true);
         setIsProcessing(false);
         return; // Detener aquí para mostrar la verificación
+      } else if (paymentMethod === "bancolombia") {
+        console.log("🏦 Tokenizando Bancolombia Transfer...");
+
+        // Guardar datos necesarios en sessionStorage antes de redirigir
+        const dataToSave = {
+          token: null, // se guardará después de tokenizar
+          email: email,
+          billingCycle: billingCycle === "monthly" ? "monthly" : "yearly",
+          merchantData: {
+            acceptance_token:
+              merchantData?.data?.presigned_acceptance?.acceptance_token,
+            accept_personal_auth:
+              merchantData?.data?.presigned_personal_data_auth
+                ?.acceptance_token,
+          },
+        };
+
+        tokenData = await tokenizeBancolombia(
+          `${import.meta.env.VITE_FRONTEND_URL}/bancolombia-callback`
+        );
+        console.log("✅ Tokenización Bancolombia exitosa:", tokenData);
+        console.log(
+          "📋 Detalles del token:",
+          JSON.stringify(tokenData, null, 2)
+        );
+
+        // Guardar el token generado
+        dataToSave.token = tokenData.data.id;
+        sessionStorage.setItem(
+          "bancolombia_payment_data",
+          JSON.stringify(dataToSave)
+        );
+
+        // Redirigir al usuario al authorization_url
+        const authorizationUrl = tokenData?.data?.authorization_url;
+        if (authorizationUrl) {
+          console.log("🔗 Redirigiendo al usuario a:", authorizationUrl);
+          // Redirigir en la misma ventana
+          window.location.href = authorizationUrl;
+          return; // Detener aquí hasta que el usuario autorice
+        } else {
+          console.error("⚠️ No se encontró authorization_url en la respuesta");
+          alert(
+            "Error: No se pudo obtener la URL de autorización de Bancolombia"
+          );
+          setIsProcessing(false);
+          return;
+        }
       }
 
       // Extraer tokens de aceptación del merchantData
@@ -339,6 +374,9 @@ const PaymentModal = ({
         });
 
         console.log("✅ Suscripción creada exitosamente:", subscriptionData);
+
+        // Limpiar tokens de aceptación después de usar
+        sessionStorage.removeItem("merchant_acceptance_tokens");
 
         // Guardar el ID del pago y mostrar pantalla de procesamiento
         const paymentId =

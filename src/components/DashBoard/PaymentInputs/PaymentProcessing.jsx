@@ -18,7 +18,6 @@ const PaymentProcessing = ({
 
     // Función común para manejar los cambios de estado
     const handlePaymentChange = (newData) => {
-      console.log("🔄 Procesando cambio de pago:", newData);
       setPaymentData(newData);
 
       switch (newData.status) {
@@ -46,7 +45,6 @@ const PaymentProcessing = ({
 
     // Estado inicial (por si ya existía)
     const fetchInitialStatus = async () => {
-      console.log("🔍 Buscando estado inicial para paymentId:", paymentId);
       try {
         const { data, error } = await supabase
           .from("payments")
@@ -54,17 +52,10 @@ const PaymentProcessing = ({
           .eq("wompi_transaction_id", paymentId)
           .single();
 
-        console.log("📊 Resultado de búsqueda inicial:", { data, error });
-
         if (error && error.code !== "PGRST116") throw error; // ignora si no hay fila
 
         if (data) {
-          console.log("✅ Registro existente encontrado, procesando...");
           handlePaymentChange(data);
-        } else {
-          console.log(
-            "⏳ No hay registro aún, esperando INSERT en tiempo real..."
-          );
         }
       } catch (err) {
         console.error("❌ Error al obtener estado inicial:", err);
@@ -85,7 +76,6 @@ const PaymentProcessing = ({
         filter: `wompi_transaction_id=eq.${paymentId}`,
       },
       (payload) => {
-        console.log("🆕 Nuevo registro de pago detectado:", payload);
         handlePaymentChange(payload.new);
       }
     );
@@ -100,22 +90,16 @@ const PaymentProcessing = ({
         filter: `wompi_transaction_id=eq.${paymentId}`,
       },
       (payload) => {
-        console.log("📡 Actualización de pago detectada:", payload);
         handlePaymentChange(payload.new);
       }
     );
 
     // Inicializar: suscribirse primero, luego buscar estado inicial
     const initializePaymentTracking = () => {
-      console.log("🚀 Inicializando seguimiento de pago para:", paymentId);
-
       // Suscribirse con callback
       channel.subscribe((status) => {
-        console.log("📡 Estado de suscripción:", status);
-
         // Solo cuando la suscripción esté activa, buscar estado inicial
         if (status === "SUBSCRIBED") {
-          console.log("✓ Suscripción activa, buscando estado inicial...");
           fetchInitialStatus();
         }
       });
@@ -125,7 +109,6 @@ const PaymentProcessing = ({
 
     // Cleanup
     return () => {
-      console.log("🧹 Limpiando suscripción para:", paymentId);
       channel.unsubscribe();
     };
   }, [paymentId, userId, onSuccess]);
@@ -136,7 +119,12 @@ const PaymentProcessing = ({
   };
 
   const handleClose = () => {
-    if (onClose) onClose();
+    if (status === "completed") {
+      // Recargar para actualizar el estado de suscripción
+      window.location.href = "/Dashboard/avanzadas";
+    } else {
+      if (onClose) onClose();
+    }
   };
 
   const renderContent = () => {

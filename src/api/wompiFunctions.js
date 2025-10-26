@@ -1,7 +1,9 @@
 //IMPORT llave publica
 const publicKey = import.meta.env.VITE_WOMPI_PUBLIC_KEY;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const wompiApiUrl = import.meta.env.VITE_WOMPI_API_URL;
+const frontendUrl = import.meta.env.VITE_FRONTEND_URL;
 
 //Con esta funcion obtenemos la informacion del merchant para mostrar en el modal de pago y que el cliente pueda usar los checkboxes para aceptar los terminos y condiciones y la política de tratamiento de datos personales
 export async function getMerchant() {
@@ -18,7 +20,7 @@ export async function getMerchant() {
     }
 
     const data = await response.json();
-    console.log("Merchant data:", data);
+
     return data;
   } catch (error) {
     console.error("Error al obtener merchant:", error);
@@ -57,7 +59,7 @@ export async function tokenizeCard(cardData) {
     }
 
     const data = await response.json();
-    console.log("Token de tarjeta generado:", data);
+
     return data;
   } catch (error) {
     console.error("Error al tokenizar tarjeta:", error);
@@ -88,10 +90,42 @@ export async function tokenizeNequi(phoneNumber) {
     }
 
     const data = await response.json();
-    console.log("Token de Nequi generado:", data);
+
     return data;
   } catch (error) {
     console.error("Error al tokenizar Nequi:", error);
+    throw error;
+  }
+}
+
+//Con esta función tokenizamos Bancolombia Transfer
+export async function tokenizeBancolombia(redirectUrl) {
+  try {
+    const response = await fetch(`${wompiApiUrl}/tokens/bancolombia_transfer`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${publicKey}`,
+      },
+      body: JSON.stringify({
+        redirect_url: redirectUrl || `${frontendUrl}/bancolombia-callback`,
+        type_auth: "TOKEN",
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.error?.reason ||
+          `Error en la tokenización: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+
+    return data;
+  } catch (error) {
+    console.error("Error al tokenizar Bancolombia:", error);
     throw error;
   }
 }
@@ -117,12 +151,44 @@ export async function verifyNequiSubscription(token) {
     }
 
     const nequiData = await response.json();
-    console.log("Estado del token de Nequi:", nequiData);
 
     // Verificar si el estado es APPROVED
     return nequiData.data.status === "APPROVED";
   } catch (error) {
     console.error("Error al verificar Nequi:", error);
+    throw error;
+  }
+}
+
+//Función para verificar el estado del token de Bancolombia
+export async function verifyBancolombiaToken(token) {
+  try {
+    const response = await fetch(
+      `${wompiApiUrl}/tokens/bancolombia_transfer/${token}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${publicKey}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error en la verificación:", errorData);
+      throw new Error(
+        errorData.error?.reason ||
+          `Error en la verificación: ${response.status}`
+      );
+    }
+
+    const bancolombiaData = await response.json();
+
+    // Verificar si el estado es APPROVED
+    return bancolombiaData.data.status === "APPROVED";
+  } catch (error) {
+    console.error("Error al verificar Bancolombia:", error);
     throw error;
   }
 }
@@ -136,7 +202,7 @@ export async function createPaymentSource({
   accept_personal_auth,
 }) {
   try {
-    const functionUrl = `https://zqgzynkpxgtaipmmmrwz.supabase.co/functions/v1/createPaymentSource`;
+    const functionUrl = `${supabaseUrl}/functions/v1/createPaymentSource`;
 
     const res = await fetch(functionUrl, {
       method: "POST",
@@ -158,7 +224,6 @@ export async function createPaymentSource({
 
     if (!res.ok) throw new Error(data.error || "Error creando método de pago");
 
-    console.log("Payment source creado:", data.paymentSource);
     return data.paymentSource;
   } catch (err) {
     console.error("Error creando fuente de pago:", err);
@@ -174,7 +239,7 @@ export async function createSubscription({
 }) {
   try {
     const response = await fetch(
-      "https://zqgzynkpxgtaipmmmrwz.supabase.co/functions/v1/create-subscription",
+      `${supabaseUrl}/functions/v1/create-subscription`,
       {
         method: "POST",
         headers: {
@@ -199,7 +264,7 @@ export async function createSubscription({
 
     // Parsear respuesta exitosa
     const data = await response.json();
-    console.log("✅ Suscripción creada:", data);
+
     return data; // contiene { subscription, payment }
   } catch (error) {
     console.error("❌ Error en createSubscription:", error);

@@ -12,8 +12,17 @@ import {
 } from "./Plans";
 import PayButton from "./PayButton";
 import { Check, Crown } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import { Navigate } from "react-router-dom";
 
 const PlanesPage = () => {
+  const { hasActiveSubscription } = useAuth();
+
+  // Si el usuario ya tiene suscripción activa, redirigir al dashboard
+  if (hasActiveSubscription) {
+    return <Navigate to="/Dashboard" replace />;
+  }
+
   const {
     // State
     billingCycle,
@@ -26,7 +35,6 @@ const PlanesPage = () => {
 
     // User and subscription data
     subscription,
-    subscriptionLoading,
     isProUser,
     isActive,
     isTrialing,
@@ -39,10 +47,7 @@ const PlanesPage = () => {
     handleCancelSubscription,
   } = usePlansLogic();
 
-  // Mostrar loading mientras se cargan los datos
-  if (subscriptionLoading) {
-    return <LoadingState message="Cargando información de suscripción..." />;
-  }
+  // Loading state eliminado - ya no se consulta automáticamente la base de datos
 
   return (
     <div className="min-h-screen bg-[#111B21] text-white p-6">

@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 
 /**
  * Hook to manage user session and automatically refresh it based on user activity
@@ -11,17 +11,24 @@ export const useSessionManager = () => {
     if (!user) return;
 
     // Events that indicate user activity
-    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    
+    const activityEvents = [
+      "mousedown",
+      "mousemove",
+      "keypress",
+      "scroll",
+      "touchstart",
+      "click",
+    ];
+
     let activityTimer;
-    
+
     // Function to handle user activity
     const handleActivity = () => {
       // Clear existing timer
       if (activityTimer) {
         clearTimeout(activityTimer);
       }
-      
+
       // Set new timer to refresh session after 30 minutes of activity
       activityTimer = setTimeout(() => {
         refreshSession();
@@ -29,7 +36,7 @@ export const useSessionManager = () => {
     };
 
     // Add event listeners for user activity
-    activityEvents.forEach(event => {
+    activityEvents.forEach((event) => {
       window.addEventListener(event, handleActivity, true);
     });
 
@@ -41,8 +48,8 @@ export const useSessionManager = () => {
       if (activityTimer) {
         clearTimeout(activityTimer);
       }
-      
-      activityEvents.forEach(event => {
+
+      activityEvents.forEach((event) => {
         window.removeEventListener(event, handleActivity, true);
       });
     };
@@ -53,10 +60,10 @@ export const useSessionManager = () => {
     if (!user) return;
 
     const sessionCheckInterval = setInterval(() => {
-      const expiry = localStorage.getItem('simonIA_user_expiry');
-      
+      const expiry = localStorage.getItem("simonIA_user_expiry");
+
       if (!expiry || Date.now() > parseInt(expiry)) {
-        console.log('Session expired, logging out user');
+        console.log("Session expired, logging out user");
         logout();
       }
     }, 60 * 60 * 1000); // Check every hour

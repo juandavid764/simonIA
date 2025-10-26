@@ -6,15 +6,19 @@ import {
   HelpCircle,
   User,
   FileText,
+  Zap,
+  CreditCard,
 } from "lucide-react";
 
 // Datos de navegación del dashboard
 const dashboardData = {
   Transacciones: [],
   Estadisticas: [],
+  "Funciones Avanzadas": [],
   Configuración: [
     { Perfil: "/Dashboard/configuracion/profile" },
     { Privacidad: "/Dashboard/configuracion/privacy" },
+    { Membresía: "/Dashboard/configuracion/membresia" },
     { Soporte: "/Dashboard/soporte" },
   ],
 };
@@ -24,12 +28,14 @@ const iconMap = {
   // Iconos principales
   Transacciones: Activity,
   Estadisticas: BarChart2,
+  "Funciones Avanzadas": Zap,
   Configuración: Settings,
   Soporte: HelpCircle,
 
   // Iconos de submenús - Solo Configuración
   Perfil: User,
   Privacidad: FileText,
+  Membresía: CreditCard,
 };
 
 // Crear el árbol de navegación del dashboard
@@ -43,9 +49,15 @@ export const dashboardRoot = new Node({
 for (const [parentKey, children] of Object.entries(dashboardData)) {
   // Crear nodo padre
   const linkKey = parentKey.toLowerCase();
+  // Caso especial para "Funciones Avanzadas"
+  const finalLink =
+    parentKey === "Funciones Avanzadas"
+      ? "/Dashboard/avanzadas"
+      : `/Dashboard/${linkKey}`;
+
   const parentNode = new Node({
     title: parentKey,
-    link: `/Dashboard/${linkKey}`,
+    link: finalLink,
     icon: iconMap[parentKey],
   });
 

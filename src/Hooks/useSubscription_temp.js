@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { supabase } from "../supabase/client.js";
 
 export const useSubscription = (userId) => {
@@ -188,7 +188,7 @@ export const useSubscription = (userId) => {
   };
 
   // Función para verificar si el usuario puede acceder a funciones Pro
-  const canAccessProFeature = (featureName) => {
+  const canAccessProFeature = () => {
     if (!subscription) return false;
 
     // Si no tiene suscripción, solo funciones básicas
@@ -234,10 +234,10 @@ export const useSubscription = (userId) => {
     };
   };
 
-  // Cargar suscripción al montar el componente
-  useEffect(() => {
-    fetchSubscriptionStatus();
-  }, [fetchSubscriptionStatus]);
+  // Cargar suscripción al montar el componente - ELIMINADO
+  // useEffect(() => {
+  //   fetchSubscriptionStatus();
+  // }, [fetchSubscriptionStatus]);
 
   // Suscribirse a cambios en tiempo real (deshabilitado por ahora)
   // useEffect(() => {

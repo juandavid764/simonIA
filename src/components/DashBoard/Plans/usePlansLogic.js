@@ -21,7 +21,6 @@ export const usePlansLogic = () => {
 
   const {
     subscription,
-    loading: subscriptionLoading,
     error: subscriptionError,
     isProUser,
     isActive,
@@ -130,7 +129,6 @@ export const usePlansLogic = () => {
     // User and subscription data
     user,
     subscription,
-    subscriptionLoading,
     subscriptionError,
     isProUser,
     isActive,

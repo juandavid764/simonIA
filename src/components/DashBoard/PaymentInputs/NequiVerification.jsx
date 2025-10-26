@@ -20,7 +20,7 @@ const NequiVerification = ({ onVerify, onCancel, onClose }) => {
         {/* Icon/Image */}
         <div className="mb-6">
           <img
-            src="/nequi_verification.jpg"
+            src="/src/assets/NequiImage.webp"
             alt="Verificación de Nequi"
             className="w-64 h-64 object-contain rounded-lg"
           />

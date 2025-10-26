@@ -1,5 +1,5 @@
 import React from "react";
-import { CreditCard, Smartphone } from "lucide-react";
+import { CreditCard, Smartphone, Building2 } from "lucide-react";
 
 const PaymentMethodSelector = ({ paymentMethod, onPaymentMethodChange }) => {
   return (
@@ -58,6 +58,26 @@ const PaymentMethodSelector = ({ paymentMethod, onPaymentMethodChange }) => {
           />
           <Smartphone className="w-6 h-6 mr-3 text-purple-600" />
           <span className="flex-1 font-medium">Nequi</span>
+        </label>
+
+        {/* Bancolombia */}
+        <label
+          className={`flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-all ${
+            paymentMethod === "bancolombia"
+              ? "border-[#25D366] bg-green-50"
+              : "border-gray-200 hover:border-[#25D366]"
+          }`}
+        >
+          <input
+            type="radio"
+            name="paymentMethod"
+            value="bancolombia"
+            checked={paymentMethod === "bancolombia"}
+            onChange={(e) => onPaymentMethodChange(e.target.value)}
+            className="mr-4 w-4 h-4 text-[#25D366] focus:ring-[#25D366]"
+          />
+          <Building2 className="w-6 h-6 mr-3 text-yellow-600" />
+          <span className="flex-1 font-medium">Bancolombia</span>
         </label>
       </div>
     </div>
