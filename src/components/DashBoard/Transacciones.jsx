@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, use } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import {
   getTransactions,
   updateTransaction,
@@ -12,6 +12,25 @@ import { currentMonth, currentYear, nombreMes } from "../../utils/timeData.js";
 
 export const Transacciones = () => {
   const { user } = useAuth();
+  const categoryOptions = [
+    { value: "alimentacion", label: "Alimentacion" },
+    { value: "transporte", label: "Transporte" },
+    { value: "vivienda", label: "Vivienda" },
+    { value: "servicios", label: "Servicios" },
+    { value: "ocio", label: "Ocio" },
+    { value: "salud", label: "Salud" },
+    { value: "educacion", label: "Educacion" },
+    { value: "compras", label: "Compras" },
+    { value: "otros", label: "Otros" },
+  ];
+
+  const categoryLabelMap = categoryOptions.reduce((acc, option) => {
+    acc[option.value] = option.label;
+    return acc;
+  }, {});
+
+  const formatCategoryLabel = (categoryValue) =>
+    categoryLabelMap[categoryValue] || categoryValue || "-";
 
   const [ingresos, setIngresos] = useState([]);
   const [gastos, setGastos] = useState([]);
@@ -31,7 +50,7 @@ export const Transacciones = () => {
     tipo: "gasto",
   });
 
-  // Función para recargar los datos
+  // FunciÃ³n para recargar los datos
   const reloadData = useCallback(() => {
     setReload((prev) => !prev);
   }, []);
@@ -63,7 +82,7 @@ export const Transacciones = () => {
     const ingresosTemp = transactions.filter((tx) => {
       if (!tx.tipo || tx.tipo !== "ingreso" || !tx.fecha) return false;
       
-      // Forzar interpretación como fecha local agregando 'T00:00:00'
+      // Forzar interpretaciÃ³n como fecha local agregando 'T00:00:00'
       const txDate = new Date(tx.fecha + 'T00:00:00');
       return txDate.getMonth() + 1 === localCurrentMonth &&
              txDate.getFullYear() === localCurrentYear;
@@ -72,7 +91,7 @@ export const Transacciones = () => {
     const gastosTemp = transactions.filter((tx) => {
       if (!tx.tipo || tx.tipo !== "gasto" || !tx.fecha) return false;
       
-      // Forzar interpretación como fecha local agregando 'T00:00:00'
+      // Forzar interpretaciÃ³n como fecha local agregando 'T00:00:00'
       const txDate = new Date(tx.fecha + 'T00:00:00');
       return txDate.getMonth() + 1 === localCurrentMonth &&
              txDate.getFullYear() === localCurrentYear;
@@ -98,7 +117,7 @@ export const Transacciones = () => {
     setBalance(totalIngresos - totalGastos);
   }, [totalIngresos, totalGastos]);
 
-  // Paginación
+  // PaginaciÃ³n
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 8;
   const totalPages = Math.ceil(transactions.length / rowsPerPage);
@@ -110,7 +129,7 @@ export const Transacciones = () => {
   const handleNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
-  // Funciones para edición de transacciones
+  // Funciones para ediciÃ³n de transacciones
   const handleEditTransaction = (transaction) => {
     setEditingTransaction(transaction);
     setEditForm({
@@ -140,29 +159,29 @@ export const Transacciones = () => {
         descripcion: editForm.descripcion,
         monto: parseFloat(editForm.monto),
         fecha: editForm.fecha,
-        category: editForm.category,
+        category: editForm.tipo === "gasto" ? editForm.category : null,
         tipo: editForm.tipo,
       });
       // No necesitamos actualizar el estado local manualmente
-      // La suscripción en tiempo real se encargará de esto
+      // La suscripciÃ³n en tiempo real se encargarÃ¡ de esto
       handleCancelEdit();
     } catch (error) {
       console.error("Error updating transaction:", error);
-      alert("Error al actualizar la transacción");
+      alert("Error al actualizar la transacciÃ³n");
     }
   };
 
   const handleDeleteTransaction = async (id) => {
     if (
-      window.confirm("¿Estás seguro de que quieres eliminar esta transacción?")
+      window.confirm("Â¿EstÃ¡s seguro de que quieres eliminar esta transacciÃ³n?")
     ) {
       try {
         await deleteTransaction(id);
         // No necesitamos actualizar el estado local manualmente
-        // La suscripción en tiempo real se encargará de esto
+        // La suscripciÃ³n en tiempo real se encargarÃ¡ de esto
       } catch (error) {
         console.error("Error deleting transaction:", error);
-        alert("Error al eliminar la transacción");
+        alert("Error al eliminar la transacciÃ³n");
       }
     }
   };
@@ -232,7 +251,7 @@ export const Transacciones = () => {
                 <thead>
                   <tr className="bg-[#202C33]">
                     <th className="py-2 px-2 sm:px-3 font-bold uppercase tracking-wide text-xs md:text-sm whitespace-nowrap">
-                      Descripción
+                      DescripciÃ³n
                     </th>
                     <th className="py-2 px-2 sm:px-3 font-bold uppercase tracking-wide text-xs md:text-sm whitespace-nowrap">
                       Monto
@@ -241,7 +260,7 @@ export const Transacciones = () => {
                       Fecha
                     </th>
                     <th className="py-2 px-2 sm:px-3 font-bold uppercase tracking-wide text-xs md:text-sm whitespace-nowrap">
-                      Categoría
+                      CategorÃ­a
                     </th>
                     <th className="py-2 px-2 sm:px-3 font-bold uppercase tracking-wide text-xs md:text-sm whitespace-nowrap">
                       Tipo
@@ -274,7 +293,7 @@ export const Transacciones = () => {
                         {tx.fecha}
                       </td>
                       <td className="py-2 px-2 sm:px-3 text-gray-300 text-xs md:text-sm whitespace-nowrap">
-                        {tx.category || "-"}
+                        {formatCategoryLabel(tx.category)}
                       </td>
                       <td
                         className={`py-2 px-2 sm:px-3 font-bold text-xs md:text-sm whitespace-nowrap ${
@@ -291,7 +310,7 @@ export const Transacciones = () => {
                           <button
                             onClick={() => handleEditTransaction(tx)}
                             className="group flex items-center justify-center w-8 h-8 bg-[#222E35] text-gray-400 rounded-lg hover:bg-[#2A3F47] hover:text-blue-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transform hover:scale-105 active:scale-95"
-                            title="Editar transacción"
+                            title="Editar transacciÃ³n"
                             aria-label="Editar"
                           >
                             <svg
@@ -312,7 +331,7 @@ export const Transacciones = () => {
                           <button
                             onClick={() => handleDeleteTransaction(tx.id)}
                             className="group flex items-center justify-center w-8 h-8 bg-[#222E35] text-gray-400 rounded-lg hover:bg-[#2A3F47] hover:text-red-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transform hover:scale-105 active:scale-95"
-                            title="Eliminar transacción"
+                            title="Eliminar transacciÃ³n"
                             aria-label="Eliminar"
                           >
                             <svg
@@ -337,7 +356,7 @@ export const Transacciones = () => {
                 </tbody>
               </table>
             </div>
-            {/* Paginación */}
+            {/* PaginaciÃ³n */}
             <div className="flex justify-end items-center gap-2 mt-4">
               <button
                 onClick={handlePrevPage}
@@ -347,7 +366,7 @@ export const Transacciones = () => {
                 Anterior
               </button>
               <span className="text-gray-400 text-sm">
-                Página {currentPage} de {totalPages}
+                PÃ¡gina {currentPage} de {totalPages}
               </span>
               <button
                 onClick={handleNextPage}
@@ -361,17 +380,17 @@ export const Transacciones = () => {
         )}
       </div>
 
-      {/* Modal de edición */}
+      {/* Modal de ediciÃ³n */}
       {editingTransaction && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-[#111B21] p-6 rounded-lg border border-[#222E35] w-full max-w-md mx-4">
             <h3 className="text-lg font-semibold text-gray-200 mb-4">
-              Editar Transacción
+              Editar TransacciÃ³n
             </h3>
             <form onSubmit={handleUpdateTransaction} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Descripción
+                  DescripciÃ³n
                 </label>
                 <input
                   type="text"
@@ -414,25 +433,22 @@ export const Transacciones = () => {
               </div>{" "}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Categoría
+                  CategorÃ­a
                 </label>
                 <select
                   value={editForm.category}
                   onChange={(e) =>
                     setEditForm({ ...editForm, category: e.target.value })
                   }
+                  disabled={editForm.tipo === "ingreso"}
                   className="w-full p-2 rounded border border-[#222E35] bg-[#1A232A] text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
                 >
-                  <option value="">Seleccionar categoría</option>
-                  <option value="Comida">Comida</option>
-                  <option value="Transporte">Transporte</option>
-                  <option value="Vivienda">Vivienda</option>
-                  <option value="Servicios">Servicios</option>
-                  <option value="Ocio">Ocio</option>
-                  <option value="Salud">Salud</option>
-                  <option value="Educación">Educación</option>
-                  <option value="Compras">Compras</option>
-                  <option value="Otros">Otros</option>
+                  <option value="">Seleccionar categorÃ­a</option>
+                  {categoryOptions.map((category) => (
+                    <option key={category.value} value={category.value}>
+                      {category.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -442,7 +458,12 @@ export const Transacciones = () => {
                 <select
                   value={editForm.tipo}
                   onChange={(e) =>
-                    setEditForm({ ...editForm, tipo: e.target.value })
+                    setEditForm((prev) => ({
+                      ...prev,
+                      tipo: e.target.value,
+                      category:
+                        e.target.value === "ingreso" ? "" : prev.category,
+                    }))
                   }
                   className="w-full p-2 rounded border border-[#222E35] bg-[#1A232A] text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
                   required
@@ -473,3 +494,4 @@ export const Transacciones = () => {
     </div>
   );
 };
+

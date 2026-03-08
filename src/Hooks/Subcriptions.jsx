@@ -16,8 +16,8 @@ export const useSubscribeToTransacciones = (reloadData, userId) => {
         {
           event: "INSERT",
           schema: "public",
-          table: "transactions",
-          filter: `user_id=eq.${userId}`,
+          table: "transacciones",
+          filter: `usuario_id=eq.${userId}`,
         },
         (payload) => {
           console.log("INSERT detected:", payload);
@@ -29,8 +29,8 @@ export const useSubscribeToTransacciones = (reloadData, userId) => {
         {
           event: "UPDATE", 
           schema: "public",
-          table: "transactions",
-          filter: `user_id=eq.${userId}`,
+          table: "transacciones",
+          filter: `usuario_id=eq.${userId}`,
         },
         (payload) => {
           console.log("UPDATE detected:", payload);
@@ -42,8 +42,8 @@ export const useSubscribeToTransacciones = (reloadData, userId) => {
         {
           event: "DELETE",
           schema: "public",
-          table: "transactions",
-          filter: `user_id=eq.${userId}`,
+          table: "transacciones",
+          filter: `usuario_id=eq.${userId}`,
         },
         (payload) => {
           console.log("DELETE detected:", payload);

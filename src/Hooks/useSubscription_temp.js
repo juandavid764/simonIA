@@ -21,7 +21,7 @@ export const useSubscription = (userId) => {
       const { data: fallbackData, error: fallbackError } = await supabase
         .from("subscriptions")
         .select("*")
-        .eq("user_id", parseInt(userId)) // Asegurar que sea INTEGER
+        .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(1);
 

@@ -232,3 +232,32 @@ El proyecto está desplegado en **Vercel** y puede ser accedido en:
 ## 📄 Licencia
 
 Este proyecto está desarrollado por **Juan David Trujillo**. Todos los derechos sobre SimonIA, incluyendo código, diseño, contenido, logotipo y marca, pertenecen exclusivamente al desarrollador.
+
+## Modelo Supabase Actual (Requerido)
+
+El frontend esta refactorizado para trabajar con este modelo:
+
+- `public.usuarios` con:
+  - `id integer generated always as identity`
+  - `nombre text`
+  - `telefono text`
+  - `fecha_registro timestamptz`
+  - `contrasena text`
+- `public.transacciones` con:
+  - `usuario_id integer`
+  - `descripcion text`
+  - `monto numeric(12,2)`
+  - `fecha date`
+  - `tipo` (`ingreso` o `gasto`)
+  - `categoria` (solo para `gasto`)
+
+### Compatibilidad esperada
+
+- El campo de relacion de transacciones debe ser `usuario_id`.
+- El nombre de tabla de transacciones debe ser `transacciones`.
+- El nombre de tabla de perfil debe ser `usuarios`.
+- La categoria debe ser `NULL` cuando `tipo = 'ingreso'`.
+
+### Nota sobre login por telefono
+
+La app mantiene UX de login por telefono + contrasena usando la tabla `usuarios`.

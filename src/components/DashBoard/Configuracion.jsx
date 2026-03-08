@@ -6,12 +6,11 @@ import { updateConfigByUserId, getConfigByUserId } from "../../supabase/config";
 export const Configuracion = () => {
   const { user, setUser } = useAuth();
   let initialConfig;
+  const rawPhone = user?.telefono || "";
   const [configForm, setConfigForm] = useState(false);
   const [userDataForm, setUserDataForm] = useState({
-    nombre: user.nombre,
-    telefono: user.telefono.startsWith("57")
-      ? user.telefono.slice(2)
-      : user.telefono,
+    nombre: user?.nombre || "",
+    telefono: rawPhone.startsWith("57") ? rawPhone.slice(2) : rawPhone,
     contrasena: "",
   });
 
@@ -51,12 +50,13 @@ export const Configuracion = () => {
     }
 
     try {
-      await updateUser(user.id, dataUserUpdate);
-      // Actualizar el estado del usuario en el contexto y localStorage
-      setUser((prev) => ({
-        ...prev,
-        ...dataUserUpdate,
-      }));
+      const updatedUser = await updateUser(user.id, dataUserUpdate);
+      if (updatedUser) {
+        setUser((prev) => ({
+          ...prev,
+          ...updatedUser,
+        }));
+      }
 
     } catch (err) {
       userUpdateOk = false;
@@ -101,6 +101,8 @@ export const Configuracion = () => {
 
   // Cargar configuración al montar el componente
   useEffect(() => {
+    if (!user?.id) return;
+
     const fetchConfig = async () => {
       try {
         const config = await getConfigByUserId(user.id);
@@ -114,7 +116,7 @@ export const Configuracion = () => {
     };
 
     fetchConfig();
-  }, [user.id]);
+  }, [user?.id]);
 
   return (
     <div className="space-y-6">

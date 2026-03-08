@@ -511,7 +511,7 @@ export const Estadisticas = () => {
               <tbody>
                 {yearOverview.map((month) => (
                   <tr
-                    key={`${month.año}-${month.mes}`}
+                    key={`${month.anio}-${month.mes}`}
                     className="border-b border-[#222E35]/50 hover:bg-[#1A232A]"
                   >
                     <td className="py-3 px-4 text-gray-200 font-medium">

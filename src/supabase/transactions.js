@@ -1,151 +1,312 @@
-import { supabase } from "./client.js";
+﻿import { supabase } from "./client.js";
+
+const TRANSACTIONS_TABLE = "transacciones";
+
+const CATEGORY_NORMALIZATION = {
+  alimentacion: "alimentacion",
+  "alimentacion": "alimentacion",
+  comida: "alimentacion",
+  transporte: "transporte",
+  vivienda: "vivienda",
+  servicios: "servicios",
+  ocio: "ocio",
+  entretenimiento: "ocio",
+  salud: "salud",
+  educacion: "educacion",
+  "educacion": "educacion",
+  compras: "compras",
+  ropa: "compras",
+  otros: "otros",
+  otro: "otros",
+};
+
+const CATEGORY_LABELS = {
+  alimentacion: "Alimentacion",
+  transporte: "Transporte",
+  vivienda: "Vivienda",
+  servicios: "Servicios",
+  ocio: "Ocio",
+  salud: "Salud",
+  educacion: "Educacion",
+  compras: "Compras",
+  otros: "Otros",
+};
+
+const formatLocalDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const toLocalDate = (dateString) => new Date(`${dateString}T00:00:00`);
+
+const normalizeCategory = (category) => {
+  if (!category) return null;
+  const normalized = String(category).trim().toLowerCase();
+  return CATEGORY_NORMALIZATION[normalized] || normalized;
+};
+
+const getCategoryLabel = (categoryCode) => {
+  if (!categoryCode) return "Sin categoria";
+  return CATEGORY_LABELS[categoryCode] || categoryCode;
+};
+
+const toDbTransaction = (transaction = {}) => {
+  const payload = { ...transaction };
+
+  if (payload.user_id && !payload.usuario_id) {
+    payload.usuario_id = payload.user_id;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "category")) {
+    payload.categoria = payload.category;
+  }
+
+  delete payload.user_id;
+  delete payload.category;
+
+  payload.categoria = normalizeCategory(payload.categoria);
+
+  if (payload.tipo === "ingreso") {
+    payload.categoria = null;
+  }
+
+  return payload;
+};
+
+const fromDbTransaction = (row = {}) => ({
+  ...row,
+  monto: Number(row.monto),
+  user_id: row.usuario_id,
+  category: row.categoria,
+});
+
+const summarizeTransactions = (transactions = []) => {
+  const totals = transactions.reduce(
+    (acc, transaction) => {
+      const amount = Number(transaction.monto) || 0;
+      if (transaction.tipo === "ingreso") {
+        acc.total_ingresos += amount;
+      } else {
+        acc.total_gastos += amount;
+      }
+      return acc;
+    },
+    { total_ingresos: 0, total_gastos: 0 }
+  );
+
+  const resultado = totals.total_ingresos - totals.total_gastos;
+
+  return {
+    total_ingresos: Number(totals.total_ingresos.toFixed(2)),
+    total_gastos: Number(totals.total_gastos.toFixed(2)),
+    resultado: Number(resultado.toFixed(2)),
+    balance: Number(resultado.toFixed(2)),
+    total_transacciones: transactions.length,
+  };
+};
+
+const fetchTransactionsByDateRange = async ({
+  usuarioId,
+  startDate,
+  endDate,
+  onlyType = null,
+  select = "*",
+}) => {
+  let query = supabase
+    .from(TRANSACTIONS_TABLE)
+    .select(select)
+    .eq("usuario_id", usuarioId)
+    .gte("fecha", startDate)
+    .lte("fecha", endDate)
+    .order("fecha", { ascending: true });
+
+  if (onlyType) {
+    query = query.eq("tipo", onlyType);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data || [];
+};
 
 // Create a new transaction
 export async function createTransaction(transaction) {
+  const payload = toDbTransaction(transaction);
+
   const { data, error } = await supabase
-    .from("transactions")
-    .insert([transaction])
+    .from(TRANSACTIONS_TABLE)
+    .insert([payload])
     .select()
     .single();
+
   if (error) throw error;
-  return data;
+  return fromDbTransaction(data);
 }
 
 // Get all transactions (optionally by user_id)
 export async function getTransactions(user_id = null) {
   let query = supabase
-    .from("transactions")
+    .from(TRANSACTIONS_TABLE)
     .select("*")
-    .order("fecha", { ascending: false });
+    .order("fecha", { ascending: false })
+    .order("id", { ascending: false });
+
   if (user_id) {
-    query = query.eq("user_id", user_id);
+    query = query.eq("usuario_id", user_id);
   }
+
   const { data, error } = await query;
   if (error) throw error;
-  return data;
+
+  return (data || []).map(fromDbTransaction);
 }
 
 // Get a single transaction by id
 export async function getTransactionById(id) {
   const { data, error } = await supabase
-    .from("transactions")
+    .from(TRANSACTIONS_TABLE)
     .select("*")
     .eq("id", id)
     .single();
+
   if (error) throw error;
-  return data;
+  return fromDbTransaction(data);
 }
 
 // Update a transaction by id
 export async function updateTransaction(id, updates) {
+  const payload = toDbTransaction(updates);
+
   const { data, error } = await supabase
-    .from("transactions")
-    .update(updates)
+    .from(TRANSACTIONS_TABLE)
+    .update(payload)
     .eq("id", id)
     .select()
     .single();
+
   if (error) throw error;
-  return data;
+  return fromDbTransaction(data);
 }
 
 // Delete a transaction by id
 export async function deleteTransaction(id) {
-  const { error } = await supabase.from("transactions").delete().eq("id", id);
+  const { error } = await supabase.from(TRANSACTIONS_TABLE).delete().eq("id", id);
   if (error) throw error;
   return true;
 }
 
-// Get monthly statistics from the monthly_reports view
+// Get monthly statistics aggregated from transactions
 export async function getMonthlyReports(user_id, year = null) {
+  if (!user_id) return [];
+
   let query = supabase
-    .from("monthly_reports")
-    .select("*")
-    .eq("user_id", user_id)
-    .order("año", { ascending: false })
-    .order("mes", { ascending: false });
+    .from(TRANSACTIONS_TABLE)
+    .select("fecha, tipo, monto")
+    .eq("usuario_id", user_id)
+    .order("fecha", { ascending: false });
 
   if (year) {
-    query = query.eq("año", year);
+    query = query
+      .gte("fecha", `${year}-01-01`)
+      .lte("fecha", `${year}-12-31`);
   }
 
   const { data, error } = await query;
   if (error) throw error;
-  return data;
+
+  const grouped = {};
+
+  (data || []).forEach((transaction) => {
+    const date = toLocalDate(transaction.fecha);
+    const anio = date.getFullYear();
+    const mes = date.getMonth() + 1;
+    const key = `${anio}-${mes}`;
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        anio,
+        mes,
+        transactions: [],
+      };
+    }
+
+    grouped[key].transactions.push(transaction);
+  });
+
+  return Object.values(grouped)
+    .map((group) => {
+      const summary = summarizeTransactions(group.transactions);
+      return {
+        anio: group.anio,
+        mes: group.mes,
+        ...summary,
+      };
+    })
+    .sort((a, b) => {
+      if (a.anio === b.anio) return b.mes - a.mes;
+      return b.anio - a.anio;
+    });
 }
 
 // Get current month statistics
 export async function getCurrentMonthStats(user_id) {
   const now = new Date();
-  const currentYear = now.getFullYear(); // Usar tiempo local en lugar de UTC
-  const currentMonth = now.getMonth() + 1; // Usar tiempo local en lugar de UTC
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
 
-  const { data, error } = await supabase
-    .from("monthly_reports")
-    .select("*")
-    .eq("user_id", user_id)
-    .eq("año", currentYear)
-    .eq("mes", currentMonth)
-    .single();
-
-  if (error && error.code !== "PGRST116") throw error; // PGRST116 = no rows returned
-  return data;
+  return getSpecificMonthStats(user_id, currentYear, currentMonth);
 }
 
 // Get statistics for a specific month and year
 export async function getSpecificMonthStats(user_id, year, month) {
-  const { data, error } = await supabase
-    .from("monthly_reports")
-    .select("*")
-    .eq("user_id", user_id)
-    .eq("año", year)
-    .eq("mes", month)
-    .single();
+  if (!user_id || !year || !month) return null;
 
-  if (error && error.code !== "PGRST116") throw error; // PGRST116 = no rows returned
-  return data;
+  const startOfMonth = formatLocalDate(new Date(year, month - 1, 1));
+  const endOfMonth = formatLocalDate(new Date(year, month, 0));
+
+  const data = await fetchTransactionsByDateRange({
+    usuarioId: user_id,
+    startDate: startOfMonth,
+    endDate: endOfMonth,
+    select: "tipo, monto",
+  });
+
+  return summarizeTransactions(data);
 }
 
 // Get category statistics for a specific period
 export async function getCategoryStats(user_id, startDate, endDate) {
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("category, tipo, monto")
-    .eq("user_id", user_id)
-    .eq("tipo", "gasto")
-    .gte("fecha", startDate)
-    .lte("fecha", endDate)
-    .not("category", "is", null);
+  const data = await fetchTransactionsByDateRange({
+    usuarioId: user_id,
+    startDate,
+    endDate,
+    onlyType: "gasto",
+    select: "categoria, tipo, monto",
+  });
 
-  if (error) throw error;
-
-  // Group by category and sum amounts
   const categoryTotals = data.reduce((acc, transaction) => {
-    const category = transaction.category;
-    acc[category] = (acc[category] || 0) + parseFloat(transaction.monto);
+    const categoryCode = normalizeCategory(transaction.categoria);
+    if (!categoryCode) return acc;
+
+    acc[categoryCode] = (acc[categoryCode] || 0) + Number(transaction.monto || 0);
     return acc;
   }, {});
 
-  return Object.entries(categoryTotals).map(([category, total]) => ({
-    category,
-    total: parseFloat(total.toFixed(2)),
+  return Object.entries(categoryTotals).map(([categoryCode, total]) => ({
+    category: getCategoryLabel(categoryCode),
+    categoryCode,
+    total: Number(total.toFixed(2)),
   }));
 }
 
 // Get category statistics for a specific month and year
 export async function getCategoryStatsForMonth(user_id, year, month) {
-  // Calculate start and end dates for the specified month
   const startOfMonth = new Date(year, month - 1, 1);
   const endOfMonth = new Date(year, month, 0);
 
-  // Formatear fechas como YYYY-MM-DD en tiempo local
-  const formatLocalDate = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  return await getCategoryStats(
+  return getCategoryStats(
     user_id,
     formatLocalDate(startOfMonth),
     formatLocalDate(endOfMonth)
@@ -161,120 +322,96 @@ export async function getTransactionsComparison(user_id, days = 30) {
   const prevStartDate = new Date(startDate);
   prevStartDate.setDate(prevStartDate.getDate() - days);
   const prevEndDate = new Date(startDate);
+  prevEndDate.setDate(prevEndDate.getDate() - 1);
 
-  // Current period
-  const { data: currentData, error: currentError } = await supabase
-    .from("transactions")
-    .select("tipo, monto")
-    .eq("user_id", user_id)
-    .gte("fecha", startDate.toISOString().split("T")[0])
-    .lte("fecha", endDate.toISOString().split("T")[0]);
+  const currentData = await fetchTransactionsByDateRange({
+    usuarioId: user_id,
+    startDate: formatLocalDate(startDate),
+    endDate: formatLocalDate(endDate),
+    select: "tipo, monto",
+  });
 
-  if (currentError) throw currentError;
+  const previousData = await fetchTransactionsByDateRange({
+    usuarioId: user_id,
+    startDate: formatLocalDate(prevStartDate),
+    endDate: formatLocalDate(prevEndDate),
+    select: "tipo, monto",
+  });
 
-  // Previous period
-  const { data: prevData, error: prevError } = await supabase
-    .from("transactions")
-    .select("tipo, monto")
-    .eq("user_id", user_id)
-    .gte("fecha", prevStartDate.toISOString().split("T")[0])
-    .lt("fecha", startDate.toISOString().split("T")[0]);
-
-  if (prevError) throw prevError;
-
-  const calculateTotals = (data) => {
-    return data.reduce(
+  const calculateTotals = (transactions) =>
+    transactions.reduce(
       (acc, transaction) => {
         if (transaction.tipo === "ingreso") {
-          acc.ingresos += parseFloat(transaction.monto);
+          acc.ingresos += Number(transaction.monto || 0);
         } else {
-          acc.gastos += parseFloat(transaction.monto);
+          acc.gastos += Number(transaction.monto || 0);
         }
         return acc;
       },
       { ingresos: 0, gastos: 0 }
     );
-  };
 
   const current = calculateTotals(currentData);
-  const previous = calculateTotals(prevData);
+  const previous = calculateTotals(previousData);
 
   return {
     current: {
-      ingresos: parseFloat(current.ingresos.toFixed(2)),
-      gastos: parseFloat(current.gastos.toFixed(2)),
-      balance: parseFloat((current.ingresos - current.gastos).toFixed(2)),
+      ingresos: Number(current.ingresos.toFixed(2)),
+      gastos: Number(current.gastos.toFixed(2)),
+      balance: Number((current.ingresos - current.gastos).toFixed(2)),
     },
     previous: {
-      ingresos: parseFloat(previous.ingresos.toFixed(2)),
-      gastos: parseFloat(previous.gastos.toFixed(2)),
-      balance: parseFloat((previous.ingresos - previous.gastos).toFixed(2)),
+      ingresos: Number(previous.ingresos.toFixed(2)),
+      gastos: Number(previous.gastos.toFixed(2)),
+      balance: Number((previous.ingresos - previous.gastos).toFixed(2)),
     },
   };
 }
 
 // Get year overview
 export async function getYearOverview(user_id, year = null) {
-  const targetYear = year || new Date().getFullYear(); // Usar tiempo local en lugar de UTC
+  const targetYear = year || new Date().getFullYear();
+  const monthlyData = await getMonthlyReports(user_id, targetYear);
 
-  const { data, error } = await supabase
-    .from("monthly_reports")
-    .select("*")
-    .eq("user_id", user_id)
-    .eq("año", targetYear)
-    .order("mes", { ascending: true });
-
-  if (error) throw error;
-  return data;
+  return [...monthlyData].sort((a, b) => a.mes - b.mes);
 }
 
 // Get weekly analysis for current month
 export async function getWeeklyAnalysis(user_id) {
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); // Usar tiempo local
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Usar tiempo local
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-  // Formatear fechas como YYYY-MM-DD en tiempo local
-  const formatLocalDate = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+  const data = await fetchTransactionsByDateRange({
+    usuarioId: user_id,
+    startDate: formatLocalDate(startOfMonth),
+    endDate: formatLocalDate(endOfMonth),
+    select: "fecha, tipo, monto",
+  });
 
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("fecha, tipo, monto")
-    .eq("user_id", user_id)
-    .gte("fecha", formatLocalDate(startOfMonth))
-    .lte("fecha", formatLocalDate(endOfMonth))
-    .order("fecha", { ascending: true });
-
-  if (error) throw error;
-
-  // Group by weeks
   const weeks = {};
+
   data.forEach((transaction) => {
-    const date = new Date(transaction.fecha + 'T00:00:00'); // Forzar interpretación local
-    const weekNumber = Math.ceil(date.getDate() / 7); // Usar getDate() en lugar de getUTCDate()
+    const date = toLocalDate(transaction.fecha);
+    const weekNumber = Math.ceil(date.getDate() / 7);
     const weekKey = `Semana ${weekNumber}`;
 
     if (!weeks[weekKey]) {
       weeks[weekKey] = { ingresos: 0, gastos: 0, transacciones: 0 };
     }
 
-    weeks[weekKey].transacciones++;
+    weeks[weekKey].transacciones += 1;
     if (transaction.tipo === "ingreso") {
-      weeks[weekKey].ingresos += parseFloat(transaction.monto);
+      weeks[weekKey].ingresos += Number(transaction.monto || 0);
     } else {
-      weeks[weekKey].gastos += parseFloat(transaction.monto);
+      weeks[weekKey].gastos += Number(transaction.monto || 0);
     }
   });
 
-  return Object.entries(weeks).map(([week, data]) => ({
+  return Object.entries(weeks).map(([week, dataByWeek]) => ({
     week,
-    ...data,
-    balance: parseFloat((data.ingresos - data.gastos).toFixed(2)),
+    ...dataByWeek,
+    balance: Number((dataByWeek.ingresos - dataByWeek.gastos).toFixed(2)),
   }));
 }
 
@@ -283,47 +420,36 @@ export async function getWeeklyAnalysisForMonth(user_id, year, month) {
   const startOfMonth = new Date(year, month - 1, 1);
   const endOfMonth = new Date(year, month, 0);
 
-  // Formatear fechas como YYYY-MM-DD en tiempo local
-  const formatLocalDate = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+  const data = await fetchTransactionsByDateRange({
+    usuarioId: user_id,
+    startDate: formatLocalDate(startOfMonth),
+    endDate: formatLocalDate(endOfMonth),
+    select: "fecha, tipo, monto",
+  });
 
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("fecha, tipo, monto")
-    .eq("user_id", user_id)
-    .gte("fecha", formatLocalDate(startOfMonth))
-    .lte("fecha", formatLocalDate(endOfMonth))
-    .order("fecha", { ascending: true });
-
-  if (error) throw error;
-
-  // Group by weeks
   const weeks = {};
+
   data.forEach((transaction) => {
-    const date = new Date(transaction.fecha + 'T00:00:00'); // Forzar interpretación local
-    const weekNumber = Math.ceil(date.getDate() / 7); // Usar getDate() en lugar de getUTCDate()
+    const date = toLocalDate(transaction.fecha);
+    const weekNumber = Math.ceil(date.getDate() / 7);
     const weekKey = `Semana ${weekNumber}`;
 
     if (!weeks[weekKey]) {
       weeks[weekKey] = { ingresos: 0, gastos: 0, transacciones: 0 };
     }
 
-    weeks[weekKey].transacciones++;
+    weeks[weekKey].transacciones += 1;
     if (transaction.tipo === "ingreso") {
-      weeks[weekKey].ingresos += parseFloat(transaction.monto);
+      weeks[weekKey].ingresos += Number(transaction.monto || 0);
     } else {
-      weeks[weekKey].gastos += parseFloat(transaction.monto);
+      weeks[weekKey].gastos += Number(transaction.monto || 0);
     }
   });
 
-  return Object.entries(weeks).map(([week, data]) => ({
+  return Object.entries(weeks).map(([week, dataByWeek]) => ({
     week,
-    ...data,
-    balance: parseFloat((data.ingresos - data.gastos).toFixed(2)),
+    ...dataByWeek,
+    balance: Number((dataByWeek.ingresos - dataByWeek.gastos).toFixed(2)),
   }));
 }
 
@@ -331,24 +457,24 @@ export async function getWeeklyAnalysisForMonth(user_id, year, month) {
 export async function getAverageSpendingByCategory(user_id, months = 6) {
   const endDate = new Date();
   const startDate = new Date();
-  startDate.setUTCMonth(startDate.getUTCMonth() - months);
+  startDate.setMonth(startDate.getMonth() - months);
 
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("fecha, category, monto")
-    .eq("user_id", user_id)
-    .eq("tipo", "gasto")
-    .gte("fecha", startDate.toISOString().split("T")[0])
-    .lte("fecha", endDate.toISOString().split("T")[0])
-    .not("category", "is", null);
+  const data = await fetchTransactionsByDateRange({
+    usuarioId: user_id,
+    startDate: formatLocalDate(startDate),
+    endDate: formatLocalDate(endDate),
+    onlyType: "gasto",
+    select: "fecha, categoria, monto",
+  });
 
-  if (error) throw error;
-  // Group by category and month
   const categoryMonths = {};
+
   data.forEach((transaction) => {
-    const date = new Date(transaction.fecha);
-    const monthKey = `${date.getUTCFullYear()}-${date.getUTCMonth() + 1}`;
-    const category = transaction.category;
+    const date = toLocalDate(transaction.fecha);
+    const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
+    const category = normalizeCategory(transaction.categoria);
+
+    if (!category) return;
 
     if (!categoryMonths[category]) {
       categoryMonths[category] = {};
@@ -358,23 +484,20 @@ export async function getAverageSpendingByCategory(user_id, months = 6) {
       categoryMonths[category][monthKey] = 0;
     }
 
-    categoryMonths[category][monthKey] += parseFloat(transaction.monto);
+    categoryMonths[category][monthKey] += Number(transaction.monto || 0);
   });
 
-  // Calculate averages
   return Object.entries(categoryMonths).map(([category, monthData]) => {
     const monthValues = Object.values(monthData);
-    const average =
-      monthValues.reduce((sum, val) => sum + val, 0) /
-      Math.max(monthValues.length, 1);
+    const total = monthValues.reduce((sum, value) => sum + value, 0);
+    const average = total / Math.max(monthValues.length, 1);
 
     return {
       category,
-      average: parseFloat(average.toFixed(2)),
+      categoryLabel: getCategoryLabel(category),
+      average: Number(average.toFixed(2)),
       months: monthValues.length,
-      total: parseFloat(
-        monthValues.reduce((sum, val) => sum + val, 0).toFixed(2)
-      ),
+      total: Number(total.toFixed(2)),
     };
   });
 }
@@ -382,27 +505,25 @@ export async function getAverageSpendingByCategory(user_id, months = 6) {
 // Get financial health score
 export async function getFinancialHealthScore(user_id) {
   const currentMonth = await getCurrentMonthStats(user_id);
-  const comparison = await getTransactionsComparison(user_id, 90); // 3 months
+  const comparison = await getTransactionsComparison(user_id, 90);
   const categoryStats = await getAverageSpendingByCategory(user_id, 3);
 
-  if (!currentMonth) {
+  if (!currentMonth || currentMonth.total_transacciones === 0) {
     return { score: 0, factors: [], recommendations: [] };
   }
 
-  let score = 50; // Base score
+  let score = 50;
   const factors = [];
   const recommendations = [];
 
-  // Factor 1: Positive balance (30 points max)
   if (currentMonth.balance > 0) {
-    const balanceRatio =
-      currentMonth.balance / (currentMonth.total_ingresos || 1);
+    const balanceRatio = currentMonth.balance / (currentMonth.total_ingresos || 1);
     const balancePoints = Math.min(30, balanceRatio * 100);
     score += balancePoints;
     factors.push(`Balance positivo: +${balancePoints.toFixed(0)} puntos`);
 
     if (balanceRatio > 0.2) {
-      recommendations.push("¡Excelente! Mantén este nivel de ahorro.");
+      recommendations.push("Excelente. Manten este nivel de ahorro.");
     }
   } else {
     score -= 20;
@@ -410,17 +531,15 @@ export async function getFinancialHealthScore(user_id) {
     recommendations.push("Considera reducir gastos o aumentar ingresos.");
   }
 
-  // Factor 2: Spending trend (20 points max)
   if (comparison && comparison.previous.gastos > 0) {
     const spendingChange =
       (comparison.current.gastos - comparison.previous.gastos) /
       comparison.previous.gastos;
+
     if (spendingChange < -0.1) {
-      // Reduced spending by 10%+
       score += 20;
-      factors.push("Reducción de gastos: +20 puntos");
+      factors.push("Reduccion de gastos: +20 puntos");
     } else if (spendingChange > 0.2) {
-      // Increased spending by 20%+
       score -= 15;
       factors.push("Aumento significativo de gastos: -15 puntos");
       recommendations.push(
@@ -429,23 +548,21 @@ export async function getFinancialHealthScore(user_id) {
     }
   }
 
-  // Factor 3: Category diversification (10 points max)
   if (categoryStats.length >= 3) {
     score += 10;
-    factors.push("Diversificación de gastos: +10 puntos");
+    factors.push("Diversificacion de gastos: +10 puntos");
   } else {
     recommendations.push(
       "Considera categorizar mejor tus gastos para un mejor control."
     );
   }
 
-  // Factor 4: Transaction frequency consistency (10 points max)
   if (currentMonth.total_transacciones >= 10) {
     score += 10;
     factors.push("Registro consistente: +10 puntos");
   } else {
     recommendations.push(
-      "Registra todas tus transacciones para un mejor análisis."
+      "Registra todas tus transacciones para un mejor analisis."
     );
   }
 
@@ -478,41 +595,43 @@ export async function getBudgetRecommendations(user_id) {
   const totalIncome = currentMonth.total_ingresos;
   const recommendations = [];
 
-  // Calculate recommended budget percentages
   const budgetRules = {
-    Alimentación: 0.25,
-    Transporte: 0.15,
-    Vivienda: 0.3,
-    Entretenimiento: 0.1,
-    Salud: 0.05,
-    Ropa: 0.05,
-    Educación: 0.1,
+    alimentacion: 0.25,
+    transporte: 0.15,
+    vivienda: 0.3,
+    ocio: 0.1,
+    salud: 0.05,
+    educacion: 0.1,
+    compras: 0.05,
+    servicios: 0.1,
+    otros: 0.05,
   };
 
-  averageSpending.forEach((category) => {
+  averageSpending.forEach((categoryStat) => {
     const recommendedAmount =
-      totalIncome * (budgetRules[category.category] || 0.1);
-    const currentSpending = category.average;
+      totalIncome * (budgetRules[categoryStat.category] || 0.1);
+    const currentSpending = categoryStat.average;
+    const label = categoryStat.categoryLabel;
 
     if (currentSpending > recommendedAmount * 1.2) {
-      // 20% over recommended
       recommendations.push({
-        category: category.category,
+        category: categoryStat.category,
+        categoryLabel: label,
         type: "reduce",
         current: currentSpending,
         recommended: recommendedAmount,
         difference: currentSpending - recommendedAmount,
-        message: `Considera reducir gastos en ${category.category}`,
+        message: `Considera reducir gastos en ${label}`,
       });
     } else if (currentSpending < recommendedAmount * 0.5) {
-      // 50% under recommended
       recommendations.push({
-        category: category.category,
+        category: categoryStat.category,
+        categoryLabel: label,
         type: "increase",
         current: currentSpending,
         recommended: recommendedAmount,
         difference: recommendedAmount - currentSpending,
-        message: `Podrías invertir más en ${category.category}`,
+        message: `Podrias invertir mas en ${label}`,
       });
     }
   });
@@ -525,41 +644,39 @@ export async function getSavingsProjection(user_id, months = 12) {
   const monthlyReports = await getMonthlyReports(user_id);
 
   if (monthlyReports.length < 3) {
-    return null; // Need at least 3 months of data
+    return null;
   }
 
-  // Calculate average monthly savings
-  const recentMonths = monthlyReports.slice(0, 6); // Last 6 months
+  const recentMonths = monthlyReports.slice(0, 6);
   const averageSavings =
     recentMonths.reduce((sum, month) => sum + month.balance, 0) /
     recentMonths.length;
 
-  // Calculate trend
   const oldestMonth = recentMonths[recentMonths.length - 1];
   const newestMonth = recentMonths[0];
-  const trend =
-    (newestMonth.balance - oldestMonth.balance) / recentMonths.length;
+  const trend = (newestMonth.balance - oldestMonth.balance) / recentMonths.length;
 
-  // Project future savings
   const projections = [];
   let currentSavings = 0;
 
-  for (let i = 1; i <= months; i++) {
+  for (let i = 1; i <= months; i += 1) {
     const projectedMonthlySavings = averageSavings + trend * i;
-    currentSavings += projectedMonthlySavings;    const futureDate = new Date();
-    futureDate.setUTCMonth(futureDate.getUTCMonth() + i);
+    currentSavings += projectedMonthlySavings;
+
+    const futureDate = new Date();
+    futureDate.setMonth(futureDate.getMonth() + i);
 
     projections.push({
       month: i,
-      date: futureDate.toISOString().split("T")[0],
-      monthlySavings: parseFloat(projectedMonthlySavings.toFixed(2)),
-      cumulativeSavings: parseFloat(currentSavings.toFixed(2)),
+      date: formatLocalDate(futureDate),
+      monthlySavings: Number(projectedMonthlySavings.toFixed(2)),
+      cumulativeSavings: Number(currentSavings.toFixed(2)),
     });
   }
 
   return {
-    averageMonthlySavings: parseFloat(averageSavings.toFixed(2)),
-    trend: parseFloat(trend.toFixed(2)),
+    averageMonthlySavings: Number(averageSavings.toFixed(2)),
+    trend: Number(trend.toFixed(2)),
     projections,
   };
 }
